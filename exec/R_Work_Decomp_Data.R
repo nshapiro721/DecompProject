@@ -17,9 +17,10 @@ nls(PercMassRemaining ~ yf + (y0 - yf) * exp(-alpha * Day),
 fit <- nls(PercMassRemaining ~ SSasymp(Day, yf, y0, log_alpha), data = Pi1_Pine)
 
 
-ggplot(data = df2 %>% filter(class == "Pine")) + 
+ggplot(data = df %>% filter(class == "Pine")) + 
   aes(x = days_to_collection, y = PercMassRemaining, color = SLC) +
-  geom_line()
+  geom_line() +
+  facet_wrap(vars(site), ncol = 3)
 
 df2 <- df
 df2$days_to_collection[which(df$days_to_collection == 84)] = 182
