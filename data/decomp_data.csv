@@ -1,4 +1,4 @@
-Tag #,Litter type,treatment,Replicate,Initial_Bag Mass (g),Initial_Litter Mass (g),Initial_Total Bag + Litter Mass (g),"Mass (dry) after collection, including bag",Mass Loss,Days to Collection
+tag,class,treatment,rep,init_mass_bag,init_mass_litter,init_total_mass,post_total_mass,mass_loss,days_to_collection
 502,Phragmites,Pine,1,8.48,5.35,13.83,13.52,0.31,28
 503,Pine,Phragmites,2,9.53,6.25,15.78,14.7,1.08,365
 504,Pine,Pine,1,10.17,6.25,16.42,16.13,0.29,28

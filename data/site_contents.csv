@@ -1,4 +1,4 @@
-Site,Litter type,treatment,Tag #,Replicate,Original mass (g),4 week mass
+site,class,treatment,tag,rep,init_mass,4wk_mass
 Mo1,Pine,Morella,553,4,15.57,
 Mo1,Pine,Morella,507,5,15.85,15.51
 Mo1,Pine,Morella,530,1,17.4,
