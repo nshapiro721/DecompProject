@@ -120,6 +120,10 @@ nls(PercMassRemaining ~ PercMassRemaining + (PercMassInitial - PercMassRemaining
 fit <- nls(PercMassRemaining ~ SSasymp(Day, log_alpha), data = All_Pinus_trtmnt)
 trial <- SSasymp(Pi1_Pine$Day, 365, 0.75, 0.1)
 
+get_alpha <- function(pmr, t) -log(pmr)/t
+
+
+
 # we want to model decline in mass as a function of time
 
 

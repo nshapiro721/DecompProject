@@ -1,5 +1,7 @@
 library(dplyr)
 library(ggplot2)
+library(tidyr)
+library(broom)
 source("exec/util.R")
 
 #Importing data
@@ -27,8 +29,9 @@ ggplot(data = df) +
 cool_model <- nls(
   post_litter_mass ~ init_mass_litter * exp(-a * days_to_collection), 
   data = df %>% filter(treatment == "Morella"),
-  start = list(a = 0.008)
+  start = list(a = 0.002)
 )
+cool_model
 
 # here's a sanity check for the estimate of alpha that it spits out
 # you'll need to do the actual stats on it but here's a gander
@@ -49,4 +52,67 @@ lines(
   col = "blue"
 )
 
+#Noa makes the same model but with percents. Has a lower residual sum of squares so kept it. Want to double check the 
+noa_model <- nls(
+  PercMassRemaining ~ 1* exp(-a * days_to_collection),
+  data = df %>% filter(treatment == "Morella"),
+  start = list(a = 0.0008)
+)
 
+noa_model
+
+#trying to do self-starting model... still isn't working :-/
+fit <- nls(PercMassRemaining ~ SSasymp(days_to_collection, g, pl, log_alpha), data = df %>% filter(treatment == "Morella"))
+
+#Testing Noa model - trying to do here what Riley did with Cool model. Not sure if it actually shows us new info or not.
+t_to_eyeball_fit <- 1:365
+perc_mass_to_eyeball_fit_noa <- get_mass_pct_remaining_at_t(
+  a = coef(noa_model)[['a']], 
+  t = t_to_eyeball_fit
+)
+plot(
+  x = df[which(df$treatment == "Morella"),"days_to_collection"], 
+  y = df[which(df$treatment == "Morella"),"PercMassRemaining"]
+)
+lines(
+  x = t_to_eyeball_fit,
+  y = perc_mass_to_eyeball_fit_noa,
+  t = "p",
+  col = "blue"
+)
+
+#Iterating noa_model for all treatments 
+treatment_alphas <- df %>% 
+  nest(-treatment) %>%
+  mutate(
+    fit = map(data, ~nls(PercMassRemaining ~ 1* exp(-a * days_to_collection), data = ., start = list(a = 0.002))),
+    tidied = map(fit, tidy),
+    Augmented = map(fit, augment),)
+
+treatment_alphas_tbl <- treatment_alphas %>% 
+  unnest(tidied) %>% 
+  select(treatment, term, estimate) %>% 
+  spread(term, estimate)
+
+
+#Iterating noa_model for all Site/Treatment combos
+SLC_alphas <- df %>% 
+  nest(-SLC) %>%
+  mutate(
+    fit = map(data, ~nls(PercMassRemaining ~ 1* exp(-a * days_to_collection), data = ., start = list(a = 0.002))),
+    tidied = map(fit, tidy),
+    Augmented = map(fit, augment),)
+
+SLC_alphas_tbl <- 
+  SLC_alphas %>% 
+  unnest(tidied) %>% 
+  select(SLC, term, estimate) %>% 
+  spread(term, estimate)
+
+#printing tables and then graphs (rudimentary) of alpha values
+treatment_alphas_tbl
+SLC_alphas_tbl
+
+treatment_plot <- ggplot(data = treatment_alphas_tbl, aes(x = treatment, y = a)) + theme(axis.text.x = element_text(angle = 90)) + geom_point()
+       
+SLC_plot <- ggplot(data = SLC_alphas_tbl, aes(x = SLC, y = a)) + theme(axis.text.x = element_text(angle = 90)) + geom_point()
