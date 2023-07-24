@@ -2,6 +2,7 @@ library(dplyr)
 library(ggplot2)
 library(tidyr)
 library(broom)
+library(purrr)
 source("exec/util.R")
 
 #Importing data
@@ -12,7 +13,13 @@ df$SLC <- interaction(as.factor(df$site), as.factor(df$class))
 df$PercMassRemaining <- 1 - (df$init_total_mass - df$post_total_mass)/df$init_mass_litter
 df$post_litter_mass = df$init_mass_litter - df$mass_loss
 
-
+#Changing the days_to_collection values to reflect accurate collection dates
+df <- df %>%
+  mutate(days_to_collection = if_else(days_to_collection == 28, 22, days_to_collection))%>%
+  mutate(days_to_collection = if_else(days_to_collection == 84, 76, days_to_collection))%>%
+  mutate(days_to_collection = if_else(days_to_collection == 182, 163, days_to_collection))%>%
+  mutate(days_to_collection = if_else(days_to_collection == 365, 345, days_to_collection))
+         
 # direct estimate of alpha for each measurement point
 # this function lives in "exec/util.R" and is read in via the source() call above
 df$alpha_est <- get_alpha(df$PercMassRemaining, df$days_to_collection)
@@ -94,7 +101,7 @@ treatment_alphas_tbl <- treatment_alphas %>%
   select(treatment, term, estimate) %>% 
   spread(term, estimate)
 
-
+treatment_alphas_tbl
 #Iterating noa_model for all Site/Treatment combos
 SLC_alphas <- df %>% 
   nest(-SLC) %>%
@@ -103,16 +110,31 @@ SLC_alphas <- df %>%
     tidied = map(fit, tidy),
     Augmented = map(fit, augment),)
 
+treatment_alphas_tbl
+
 SLC_alphas_tbl <- 
   SLC_alphas %>% 
   unnest(tidied) %>% 
   select(SLC, term, estimate) %>% 
   spread(term, estimate)
 
-#printing tables and then graphs (rudimentary) of alpha values
-treatment_alphas_tbl
 SLC_alphas_tbl
 
-treatment_plot <- ggplot(data = treatment_alphas_tbl, aes(x = treatment, y = a)) + theme(axis.text.x = element_text(angle = 90)) + geom_point()
+#joining alpha values to df so that we can plot against all variables
+df <- merge(df, treatment_alphas_tbl, by = "treatment")
+df$treatment_alpha = df$a
+df<- mutate(df, a = NULL)
+
+df <- merge(df, SLC_alphas_tbl, by = "SLC")
+df$SLC_alpha = df$a
+df<- mutate(df, a = NULL)
+  
+#graphs of alpha values
+
+treatment_plot <- ggplot(data = df, aes(x = treatment, y = treatment_alpha)) + theme(axis.text.x = element_text(angle = 90)) + geom_point()
+treatment_plot
        
-SLC_plot <- ggplot(data = SLC_alphas_tbl, aes(x = SLC, y = a)) + theme(axis.text.x = element_text(angle = 90)) + geom_point()
+SLC_plot <- ggplot(data = df, aes(x = SLC, y = SLC_alpha)) + theme(axis.text.x = element_text(angle = 90)) + geom_point(aes(colour = treatment))
+
+SLC_plot
+
