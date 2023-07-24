@@ -5,14 +5,17 @@ library(broom)
 library(purrr)
 source("exec/util.R")
 
+setwd("/Users/noashapiro-tamir/Documents/dev/DecompProject")
+
 #Importing data
 df <- read.csv("data/decomp_data.csv")
 sitedf <- read.csv("data/site_contents.csv")[,c(1,4)]
+initials <- read.csv("data/initials.csv")
 df <- merge(df, sitedf, by = "tag")
 df$SLC <- interaction(as.factor(df$site), as.factor(df$class))
 df$PercMassRemaining <- 1 - (df$init_total_mass - df$post_total_mass)/df$init_mass_litter
 df$post_litter_mass = df$init_mass_litter - df$mass_loss
-
+df <- bind_rows(df, initials)
 #Changing the days_to_collection values to reflect accurate collection dates
 df <- df %>%
   mutate(days_to_collection = if_else(days_to_collection == 28, 22, days_to_collection))%>%
@@ -20,6 +23,11 @@ df <- df %>%
   mutate(days_to_collection = if_else(days_to_collection == 182, 163, days_to_collection))%>%
   mutate(days_to_collection = if_else(days_to_collection == 365, 345, days_to_collection))
          
+#visualizing the weird bump at the third collection date
+ggplot(df, aes(x = days_to_collection, y = PercMassRemaining)) + geom_point()
+boxplot(df$PercMassRemaining ~ df$days_to_collection)
+
+
 # direct estimate of alpha for each measurement point
 # this function lives in "exec/util.R" and is read in via the source() call above
 df$alpha_est <- get_alpha(df$PercMassRemaining, df$days_to_collection)
@@ -68,8 +76,10 @@ noa_model <- nls(
 
 noa_model
 
-#trying to do self-starting model... still isn't working :-/
-fit <- nls(PercMassRemaining ~ SSasymp(days_to_collection, g, pl, log_alpha), data = df %>% filter(treatment == "Morella"))
+#trying to do self-starting model... IT WORKS NOW???
+fit <- nls(PercMassRemaining ~ SSasymp(days_to_collection, yf, y0, log_alpha), data = df %>% filter(treatment == "Morella"))
+
+fit
 
 #Testing Noa model - trying to do here what Riley did with Cool model. Not sure if it actually shows us new info or not.
 t_to_eyeball_fit <- 1:365
@@ -102,6 +112,7 @@ treatment_alphas_tbl <- treatment_alphas %>%
   spread(term, estimate)
 
 treatment_alphas_tbl
+
 #Iterating noa_model for all Site/Treatment combos
 SLC_alphas <- df %>% 
   nest(-SLC) %>%
@@ -110,8 +121,7 @@ SLC_alphas <- df %>%
     tidied = map(fit, tidy),
     Augmented = map(fit, augment),)
 
-treatment_alphas_tbl
-
+SLC_alphas
 SLC_alphas_tbl <- 
   SLC_alphas %>% 
   unnest(tidied) %>% 
@@ -119,6 +129,20 @@ SLC_alphas_tbl <-
   spread(term, estimate)
 
 SLC_alphas_tbl
+
+#trying to get the self-starter to iterate. Not working yet.
+treatment_alphas_ss <- df %>%
+  nest(-treatment) %>%
+  mutate(
+    fit = map(data, ~nls(PercMassRemaining ~ SSasymp(days_to_collection, g, pl, log_alpha), data = df %>% filter(treatment == "Morella")),
+              tidied = map(fit, tidy),
+              Augmented = map(fit, augment)),)
+
+treatment_alphas_ss_tbl <- treatment_alphas_ss %>% 
+  unnest(tidied) %>% 
+  select(treatment, term, estimate) %>% 
+  spread(term, estimate)
+treatment_alphas_ss_tbl
 
 #joining alpha values to df so that we can plot against all variables
 df <- merge(df, treatment_alphas_tbl, by = "treatment")
