@@ -3,6 +3,7 @@ library(ggplot2)
 library(tidyr)
 library(broom)
 library(purrr)
+library(modelr)
 source("exec/util.R")
 
 setwd("/Users/noashapiro-tamir/Documents/dev/DecompProject")
@@ -16,6 +17,7 @@ df$SLC <- interaction(as.factor(df$site), as.factor(df$class))
 df$PercMassRemaining <- 1 - (df$init_total_mass - df$post_total_mass)/df$init_mass_litter
 df$post_litter_mass = df$init_mass_litter - df$mass_loss
 df <- bind_rows(df, initials)
+df[117, 3] = "Phragmites"
 #Changing the days_to_collection values to reflect accurate collection dates
 df <- df %>%
   mutate(days_to_collection = if_else(days_to_collection == 28, 22, days_to_collection))%>%
@@ -25,7 +27,7 @@ df <- df %>%
          
 #visualizing the weird bump at the third collection date
 ggplot(df, aes(x = days_to_collection, y = PercMassRemaining)) + geom_point()
-boxplot(df$PercMassRemaining ~ df$days_to_collection)
+boxplot(df$PercMassRemaining ~ df$days_to_collection, outlier_tagging = TRUE)
 
 
 # direct estimate of alpha for each measurement point
@@ -76,10 +78,6 @@ noa_model <- nls(
 
 noa_model
 
-#trying to do self-starting model... IT WORKS NOW???
-fit <- nls(PercMassRemaining ~ SSasymp(days_to_collection, yf, y0, log_alpha), data = df %>% filter(treatment == "Morella"))
-
-fit
 
 #Testing Noa model - trying to do here what Riley did with Cool model. Not sure if it actually shows us new info or not.
 t_to_eyeball_fit <- 1:365
@@ -98,11 +96,28 @@ lines(
   col = "blue"
 )
 
+#trying to do self-starting model... IT WORKS NOW???
+fit <- nls(PercMassRemaining ~ SSasymp(days_to_collection, yf, y0, log_alpha), data = df %>% filter(treatment == "Morella"))
+
+fit
+
+grid_morella <- data.frame(x = seq(0, 345, length = 346))
+grid %>% add_predictions(fit)
+
+plot(df$PercMassRemaining ~ df$days_to_collection)
+curve(predict(fit, grid_morella))
+
+df%>% filter(treatment == "Morella") %>% 
+  add_predictions(fit) %>%
+  ggplot(aes(x = days_to_collection, y = PercMassRemaining, group = treatment)) + 
+  geom_point() + 
+  geom_line(aes(x=days_to_collection, y=pred))
+
 #Iterating noa_model for all treatments 
 treatment_alphas <- df %>% 
   nest(-treatment) %>%
   mutate(
-    fit = map(data, ~nls(PercMassRemaining ~ 1* exp(-a * days_to_collection), data = ., start = list(a = 0.002))),
+    fit = map(data, ~nls(PercMassRemaining ~ 1* exp(-a * days_to_collection), data = ., start = list(a = 0.1))),
     tidied = map(fit, tidy),
     Augmented = map(fit, augment),)
 
@@ -113,15 +128,20 @@ treatment_alphas_tbl <- treatment_alphas %>%
 
 treatment_alphas_tbl
 
+df%>%
+  add_predictions(treatment_alphas)
+ggplot(df, aes(x = days_to_collection, y = PercMassRemaining, group = treatment))
+
+deviance(noa_model)
+
 #Iterating noa_model for all Site/Treatment combos
 SLC_alphas <- df %>% 
   nest(-SLC) %>%
   mutate(
-    fit = map(data, ~nls(PercMassRemaining ~ 1* exp(-a * days_to_collection), data = ., start = list(a = 0.002))),
+    fit = map(data, ~nls(PercMassRemaining ~ 1* exp(-a * days_to_collection), data = ., start = list(a = 0.09))),
     tidied = map(fit, tidy),
     Augmented = map(fit, augment),)
 
-SLC_alphas
 SLC_alphas_tbl <- 
   SLC_alphas %>% 
   unnest(tidied) %>% 
@@ -130,20 +150,40 @@ SLC_alphas_tbl <-
 
 SLC_alphas_tbl
 
+
 #trying to get the self-starter to iterate. Not working yet.
 treatment_alphas_ss <- df %>%
   nest(-treatment) %>%
   mutate(
-    fit = map(data, ~nls(PercMassRemaining ~ SSasymp(days_to_collection, g, pl, log_alpha), data = df %>% filter(treatment == "Morella")),
+    fit = map(data, ~nls(PercMassRemaining ~ SSasymp(days_to_collection, yf, y0, log_alpha), control = list(maxiter = 500), data = . )),
               tidied = map(fit, tidy),
-              Augmented = map(fit, augment)),)
+              Augmented = map(fit, augment),)
 
 treatment_alphas_ss_tbl <- treatment_alphas_ss %>% 
   unnest(tidied) %>% 
-  select(treatment, term, estimate) %>% 
+  select(treatment, term, estimate, std.error, p.value, statistic) %>% 
   spread(term, estimate)
 treatment_alphas_ss_tbl
 
+df%>%
+ggplot(aes(x = days_to_collection, y = PercMassRemaining, group = treatment)) + 
+  geom_point() + 
+  geom_line(aes(x=days_to_collection, y=treatment_alphas_ss$fit))
+
+
+SLC_alphas_ss <- df %>%
+  nest(-SLC) %>%
+  mutate(
+    fit = map(data, ~nls(PercMassRemaining ~ SSasymp(days_to_collection, yf, y0, log_alpha), control = list(maxiter = 500), data = . )),
+              tidied = map(fit, tidy),
+              Augmented = map(fit, augment),)
+
+SLC_alphas_ss_tbl <- SLC_alphas_ss %>% 
+  unnest(tidied) %>% 
+  select(SLC, term, estimate) %>% 
+  spread(term, estimate)
+
+SLC_alphas_ss_tbl
 #joining alpha values to df so that we can plot against all variables
 df <- merge(df, treatment_alphas_tbl, by = "treatment")
 df$treatment_alpha = df$a
@@ -162,3 +202,10 @@ SLC_plot <- ggplot(data = df, aes(x = SLC, y = SLC_alpha)) + theme(axis.text.x =
 
 SLC_plot
 
+#plotting the curves themselves
+qplot(df$days_to_collection, df$PercMassRemaining, data = augment(fit)) + geom_line(aes(y = .fitted))
+
+plot(df$days_to_collection,df$PercMassRemaining)
+curve(predict(treatment_alphas_tbl, data.frame(x)))
+
+      
