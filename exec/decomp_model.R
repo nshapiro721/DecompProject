@@ -134,11 +134,6 @@ treatment_alphas_tbl <- treatment_alphas %>%
 
 treatment_alphas_tbl
 
-
-ggplot(treatment_alphas_ss_tbl, aes(x = treatment, y = log_alpha)) + geom_bar(stat = "identity", width = 0.5) + 
-  geom_errorbar(aes(ymin = log_alpha-std.error, ymax = log_alpha+std.error), width = 0.2)
-
-
 #Iterating noa_model for all Site/Treatment combos - BAD ALPHAS
 SLC_alphas <- df %>% 
   nest(-SLC) %>%
@@ -159,7 +154,7 @@ SLC_alphas_tbl
 treatment_alphas_ss <- df %>%
   nest(-treatment) %>%
   mutate(
-    fit = map(data, ~nls(PercMassRemaining ~ SSasymp(fake_days, yf, y0, log_alpha), control = list(maxiter = 500), data = . )),
+    fit = map(data, ~nls(PercMassRemaining ~ SSasymp(days_to_collection, yf, y0, log_alpha), control = list(maxiter = 500), data = . )),
               tidied = map(fit, tidy),
               Augmented = map(fit, augment),)
 
@@ -171,7 +166,9 @@ treatment_alphas_ss_tbl <- treatment_alphas_ss %>%
   filter (!is.na(k))
 treatment_alphas_ss_tbl 
 
-
+ggplot(treatment_alphas_ss_tbl, aes(x = treatment, y = log_alpha)) + 
+  geom_bar(stat = "identity", width = 0.5, fill = "light blue") + 
+  geom_errorbar(aes(ymin = log_alpha-std.error, ymax = log_alpha+std.error), width = 0.2)
 
 #trying to iterate model for SLC, but it only works for site now?
 site_alphas_ss <- df %>%
@@ -191,8 +188,8 @@ site_alphas_ss_tbl
 #joining k values to df so that we can plot against all variables
 df <- merge(df, treatment_alphas_ss_tbl, by = "treatment")
 df$trtmt_k = df$k
-df$trtmt_log_alph = df$
-df<- mutate(df, k = NULL)
+df$trtmt_log_alph = df$log_alpha
+df<- mutate(df, k, log_alpha, y0, yf = NULL)
 
 df <- merge(df, SLC_alphas_tbl, by = "SLC")
 df$SLC_alpha = df$a
@@ -200,12 +197,11 @@ df<- mutate(df, a = NULL)
   
 #graphs of k values
 
-treatment_plot <- ggplot(data = df, aes(x = treatment, y = k)) + theme(axis.text.x = element_text(angle = 90)) + geom_point()
+treatment_plot <- ggplot(data = df, aes(x = treatment, y = trtmt_k)) + theme(axis.text.x = element_text(angle = 90)) + geom_point()
 treatment_plot
 
        
 SLC_plot <- ggplot(data = df, aes(x = SLC, y = SLC_alpha)) + theme(axis.text.x = element_text(angle = 90)) + geom_point(aes(colour = treatment))
-
 SLC_plot
 
 #plotting the curves themselves
@@ -214,8 +210,7 @@ SLC_plot
 augmented <- treatment_alphas_ss %>% 
   unnest(Augmented)
 
-qplot(df$days_to_collection, df$PercMassRemaining, data = augmented, geom = 'point', colour = treatment) 
-+ 
+qplot(df$days_to_collection, df$PercMassRemaining, data = augmented, geom = 'point', colour = treatment) + 
   geom_line(aes(y = .fitted))
   
   #brute forcing treatment curves, a la Alex's advice, using functions written in util.R
