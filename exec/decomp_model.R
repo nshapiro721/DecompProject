@@ -4,6 +4,7 @@ library(tidyr)
 library(broom)
 library(purrr)
 library(modelr)
+library(stringr)
 source("exec/util.R")
 
 # Importing data
@@ -104,11 +105,11 @@ ggplot(data=df %>% filter(treatment == "Morella"),
        aes(x = years_to_collection, 
            y = PercMassRemaining)) + 
   geom_point() +
-  geom_smooth(method="nls", 
-              method.args = list(formula= PercMassRemaining ~ 1 * exp(-a * years_to_collection), 
-              start=0.02),
-              data = df %>% filter(treatment == "Morella"),
-              se = FALSE)
+  stat_smooth(method="nls", 
+              formula= PercMassRemaining ~ 1 * exp(-a * years_to_collection),
+              method.args = li(
+                start = list(a = 0.02, PercMassRemaining = 1, years_to_collection = 0)
+              ))
 
 noa_model
 
@@ -149,6 +150,9 @@ SLC_alphas_tbl <-
 
 SLC_alphas_tbl
 
+df <- df %>%
+  merge(SLC_alphas_tbl, by = "SLC")
+
   #graphing SLC alpha values
 
 
@@ -161,39 +165,115 @@ ggplot(treatment_alphas_tbl, aes(x = treatment, y = a)) +
   geom_errorbar(aes(ymin = a - std.error, ymax = a + std.error), width = 0.2)
 
 ggplot(SLC_alphas_tbl, aes(x = reorder(SLC, -a), y = a)) +
-  geom_bar(stat = "identity", width = 0.5, fill = "orange") +
-  geom_errorbar(aes(ymin = a - std.error, ymax = a + std.error), width = 0.2) + theme(axis.text.x = element_text(angle = 90))
-
-    #joining...
-df <- df %>%
-  merge(treatment_alphas_tbl, by = "treatment") %>%
-  rename(trtmt_a = a,
-         trtmt_std_err = std.error) %>%
-  merge(SLC_alphas_tbl, by = "SLC") %>%
-  rename(slc_a = a,
-         slc_std_err = std.error)
-
-ggplot(data = df, aes(x = reorder(SLC, -slc_a), y = slc_a, fill = treatment)) +
-  geom_bar(stat = "identity", width = 0.5) +
-  geom_errorbar(aes(ymin = slc_a - slc_std_err, ymax = slc_a + slc_std_err, width = 0.2)) +
+  geom_bar(stat = "identity", width = 0.5, aes(fill = litter)) +
+  geom_errorbar(aes(ymin = a - std.error, ymax = a + std.error), width = 0.2) + 
   theme(axis.text.x = element_text(angle = 90))
 
+SLC_alphas_tbl <- as.data.frame(SLC_alphas_tbl) 
+SLC_alphas_tbl$site <- substr(SLC_alphas_tbl$SLC, 1, 3) 
+SLC_alphas_tbl$treatment <- substr(SLC_alphas_tbl$SLC, 1, 2)
+SLC_alphas_tbl$litter = rep(c("Morella", "Phragmites", "Pinus"), 9)
+SLC_alphas_tbl$litter = as.factor(SLC_alphas_tbl$litter)
 
+ggplot(SLC_alphas_tbl, aes(x=litter, y=a, group = treatment))+
+  geom_point(aes(color=treatment))+
+  geom_line(aes(color=treatment))+
+  geom_errorbar(aes(ymin = a - std.error, ymax = a + std.error), width = 0.2)
+# each site as a different point
 
-treatment_plot <- ggplot(data = df, aes(x = treatment, y = trtmt_a)) +
-  theme(axis.text.x = element_text(angle = 90)) +
-  geom_bar(stat = "identity", width = 0.5, fill = "light blue")
+SLC_alphas_sum = SLC_alphas_tbl%>% group_by(treatment, litter) %>% 
+  summarise(mean_a = mean(a),
+            std.error = sd(a)/sqrt(length(a)))
 
-treatment_plot
+ggplot(SLC_alphas_sum, aes(x=treatment, y=mean_a, group = litter, color=litter))+
+  geom_point(position=position_dodge(width=0.2))+
+  geom_errorbar(aes(ymin = mean_a - std.error, ymax = mean_a + std.error), width = 0.35, position=position_dodge(width=0.2)) + 
+  geom_line(position = position_dodge(width = 0.2))
 
-rm(treatment_plot)
-
-SLC_plot <- ggplot(data = df, aes(x = SLC, y = SLC_alpha)) +
-  theme(axis.text.x = element_text(angle = 90)) +
-  geom_point(aes(colour = treatment))
-SLC_plot
-
-
+SLC_anova = aov(data=SLC_alphas_tbl, a ~ treatment*litter)
+summary(SLC_anova)
+TukeyHSD(SLC_anova, "treatment")
 
 # plotting the curves themselves
+df %>%
+  filter(SLC == "Ph2.Pine") %>%
+  add_predictions(noa_model) %>%
+  ggplot(aes(x = days_to_collection, y = PercMassRemaining, group = treatment)) +
+  geom_point() +
+  geom_line(aes(x = days_to_collection, y = pred)) +
+  ggtitle("Decay Curve: Morella Treatment") 
+
+df %>%
+  filter(SLC == "Ph2.Pine") %>%
+  add_predictions(noa_model) %>%
+  ggplot(aes(x = days_to_collection, y = PercMassRemaining, group = treatment)) +
+  geom_point() +
+  geom_smooth(method = "nls", 
+              method.args = list(formula= PercMassRemaining ~ 1 * exp(-a * years_to_collection),
+                                 start = list(PercMassRemaining = 1, a = 0.02, years_to_collection = 0)
+                                 ))
+  
+  ggtitle("Decay Curve: Morella Treatment") 
+
+#Bringing in soil data
+soils_decomp <- read.csv("data/Decomp_soils.csv")
+soils_decomp[21, 2] <- "Pi1"
+soils_decomp_clean <- 
+  soils_decomp %>% 
+    group_by (site) %>%
+    summarise(mean_moisture = mean(percentage_moisture), 
+              mean_EC = mean(EC_uS.cm), 
+              mean_salinity = mean(Salinity_ppt))
+df <- df %>%
+  merge(soils_decomp_clean, by = "site")
+
+#making regressions of soils + decomp data
+
+df_phrag_regression <- df %>% 
+  filter(class == "Phragmites")
+
+    phrag_regression_sal <- df_phrag_regression %>%
+      lm(formula = mean_salinity ~ a)
+    summary(phrag_regression_sal)
+  
+    phrag_regression_mois <- df_phrag_regression %>%
+      lm(formula = mean_moisture ~ a)
+    summary(phrag_regression_mois)
+
+df_mor_regression <- df %>%
+  filter(class == "Morella")
+
+    mor_regression_sal <- df_mor_regression %>%
+     lm(formula = mean_salinity ~ a)
+    summary(mor_regression_sal)
+    
+    mor_regression_mois <- df_mor_regression %>%
+      lm(formula = mean_moisture ~ a)
+    summary(mor_regression_mois)
+
+df_pine_regression <- df %>%
+  filter(class == "Pinus")
+
+    pine_regression_sal <- df_pine_regression %>%
+     lm(formula = mean_salinity ~ a)
+    summary(pine_regression_sal)
+
+    pine_regression_mois <- df_pine_regression %>%
+      lm(formula = mean_moisture ~ a)
+    summary(pine_regression_mois)
+
+ggplot(data= df, aes(x = mean_salinity, y = a)) + 
+  geom_point(aes(col = class)) +
+  geom_smooth(data = df_phrag_regression, method = "lm", col = "#00BA38") +
+  geom_smooth(data = df_mor_regression, method = "lm", col = "#F8766D") +
+  geom_smooth(data = df_pine_regression, method = "lm", col = "#619CFF")
+
+ggplot(data= df, aes(x = mean_moisture, y = a)) + 
+   geom_point(aes(col = class)) +
+   geom_smooth(data = df_phrag_regression, method = "lm", col = "#00BA38") +
+   geom_smooth(data = df_mor_regression, method = "lm", col = "#F8766D") +
+   geom_smooth(data = df_pine_regression, method = "lm", col = "#619CFF")
+
+soil_anova <- aov(data=df, a ~ mean_salinity*mean_moisture)
+summary(soil_anova)
 

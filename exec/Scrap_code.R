@@ -83,7 +83,7 @@ df <- mutate(df, a = NULL)
 
 
 # the following uses the code from Douglas watson for graphing multiple curves from an interated model, but because our data is set up in this long form with many values for each treatment at each time point, it's not making any sense to look at. I think what we need here is to be seeing the lines for each SLC, not each treatment? because that's the only thing that can actually be tracked with a line over time.
-augmented <- treatment_alphas_ss %>%
+augmented <- treatment_alphas %>%
   unnest(Augmented)
 
 qplot(df$days_to_collection, df$PercMassRemaining, data = augmented, geom = "point", colour = treatment) +
@@ -101,8 +101,42 @@ plot(x = fake_days, y = pin_eq(fake_days), main = "Pine brute force")
 plot(x = fake_days, y = phrag_eq(fake_days), main = "Phrag brute force")
 
 df %>%
-  add_predictions(treatment_alphas_ss) %>%
+  add_predictions(treatment_alphas) %>%
   ggplot(aes(x = days_to_collection, y = PercMassRemaining, group = treatment)) +
   geom_point() +
   geom_line(aes(x = days_to_collection, y = pred))
 # this tries to create graphs from not a single model but the iterated versions, but it doesn't know how to predict from a model with so many nested layers, and I don't blame it. Help!
+
+
+#joining...
+df %>%
+  merge(treatment_alphas_tbl, by = "treatment") %>%
+  rename(trtmt_a = a,
+         trtmt_std_err = std.error) %>%
+  merge(SLC_alphas_tbl, by = "SLC") %>%
+  rename(slc_a = a,
+         slc_std_err = std.error)
+
+
+
+ggplot(data = df, aes(x = reorder(SLC, -slc_a), y = slc_a, fill = treatment)) +
+  geom_bar(stat = "identity", width = 0.5) +
+  geom_errorbar(aes(ymin = slc_a - slc_std_err, ymax = slc_a + slc_std_err, width = 0.2)) +
+  theme(axis.text.x = element_text(angle = 90))
+
+
+
+treatment_plot <- ggplot(data = df, aes(x = treatment, y = trtmt_a)) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  geom_bar(stat = "identity", width = 0.5, fill = "light blue")
+
+treatment_plot
+
+rm(treatment_plot)
+
+SLC_plot <- ggplot(data = df, aes(x = SLC, y = SLC_a)) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  geom_point(aes(colour = treatment))
+SLC_plot
+
+
