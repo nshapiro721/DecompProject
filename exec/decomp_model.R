@@ -78,7 +78,7 @@ noa_model <- nls(
   PercMassRemaining ~ 1 * exp(-a * years_to_collection),
   data = df %>% filter(treatment == "Morella"),
   start = list(a = 0.02)
-)
+                )
 
 noa_model
 
@@ -199,12 +199,43 @@ summary(SLC_anova)
 TukeyHSD(SLC_anova, "treatment")
 
 # plotting the curves themselves
-df %>%
+df %>% 
   add_predictions(noa_model) %>%
   ggplot(aes(x = years_to_collection, y = PercMassRemaining)) +
   geom_point(col = "dark gray") +
   geom_smooth(aes(group = treatment, col = treatment, y = pred, fill = treatment), alpha = 0.3) +
 ggtitle("Decay Curves Predicted by Modeled Decay Coefficients") 
+
+
+noa_model_tester <- nls(
+  PercMassRemaining ~ 1 * exp(-a * years_to_collection),
+  data = df %>% filter(treatment == "Phragmites"),
+  start = list(a = 0.02)
+)
+
+noa_model_tester
+
+
+df %>%
+ filter(treatment == "Morella") %>%
+ add_predictions(model = noa_model) %>%
+   ggplot(aes(x = years_to_collection)) +
+   geom_point(col = "dark gray", aes(y = pred)) +
+geom_line(aes(group = treatment, col = treatment, y = pred))+ 
+  geom_smooth(aes(y = pred),
+              method = "nls",
+              formula = 'PercMassRemaining ~ 1 * exp(-a * years_to_collection)', 
+              method.args = list(start=list(a=0.1, 
+                                            PercMassRemaining = 1, 
+                                            years_to_collection = 0),
+              alpha = 0.3)) 
+
++
+  ggtitle("Decay Curves Predicted by Modeled Decay Coefficients") 
+
+add_predictions(df %>% 
+                  filter(treatment == "Morella"), 
+                model = noa_model)
 
 #Bringing in soil data
 soils_decomp <- read.csv("data/Decomp_soils.csv")
@@ -255,13 +286,23 @@ df_pine_regression <- df %>%
 
 ggplot(data = df_pine_regression, aes(x = mean_salinity, y = a)) + 
   geom_point(col = "#619CFF") +
-  geom_smooth(method = "lm", col = "#619CFF")
+  geom_smooth(method = "lm", col = "#619CFF") +
+  ggtitle("Impact of Soil Salinity on Pine Litter Decay") +
+  xlab("Mean Soil Salinity at each Site") + 
+  ylab("Decay Rate") +
+  annotate(geom = "text",
+           label = "R^2 = 0.2752",
+           x = 1,
+           y = 0.15)
 
 ggplot(data= df %>% filter(!is.na(class)), aes(x = mean_moisture, y = a)) + 
    geom_point(aes(col = class)) +
    geom_smooth(data = df_phrag_regression, method = "lm", col = "#00BA38") +
    geom_smooth(data = df_mor_regression, method = "lm", col = "#F8766D") +
-   geom_smooth(data = df_pine_regression, method = "lm", col = "#619CFF")
+   geom_smooth(data = df_pine_regression, method = "lm", col = "#619CFF") +
+   ggtitle("Impact of Soil Moisture on Decay") +
+   xlab("Mean Soil Moisture at each site") +
+   ylab("Decay Rate")
 
 #multivariate regressions
 
