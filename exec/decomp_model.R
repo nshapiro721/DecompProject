@@ -74,6 +74,7 @@ lines(
 )
 
 # Noa makes the same model but with percents. Has a lower residual sum of squares so kept it. Want to double check the
+
 noa_model <- nls(
   PercMassRemaining ~ 1 * exp(-a * years_to_collection),
   data = df %>% filter(treatment == "Morella"),
@@ -199,9 +200,14 @@ summary(SLC_anova)
 TukeyHSD(SLC_anova, "treatment")
 
 # plotting the curves themselves
+four_years <- as.data.frame(seq(1, 4, 0.02)) %>%
+  rename(four_years_continuous = seq)
+
+ten_years <- as.data.frame(seq(1, 10, 0.02))
+
 df %>% 
-  add_predictions(noa_model) %>%
-  ggplot(aes(x = years_to_collection, y = PercMassRemaining)) +
+  add_predictions(noa_model_tester) %>%
+  ggplot(aes(x = four_years, y = PercMassRemaining)) +
   geom_point(col = "dark gray") +
   geom_smooth(aes(group = treatment, col = treatment, y = pred, fill = treatment), alpha = 0.3) +
 ggtitle("Decay Curves Predicted by Modeled Decay Coefficients") 
@@ -209,12 +215,44 @@ ggtitle("Decay Curves Predicted by Modeled Decay Coefficients")
 
 noa_model_tester <- nls(
   PercMassRemaining ~ 1 * exp(-a * years_to_collection),
-  data = df %>% filter(treatment == "Phragmites"),
+  data = df %>% filter(treatment == "Morella"),
   start = list(a = 0.02)
 )
 
 noa_model_tester
 
+t_to_eyeball_fit <- 1:1000
+
+perc_mass_to_eyeball_fit_four <- four_years %>% 
+  rename("year" = "seq(1, 4, 0.02)") %>%
+  mutate (pmr = unlist(get_mass_pct_remaining_at_t(
+                  alpha = coef(noa_model_tester)[["a"]],
+                  t = four_years)))
+
+perc_mass_to_eyeball_fit_ten <- ten_years %>% 
+  rename("year" = "seq(1, 10, 0.02)") %>%
+  mutate (pmr = unlist(get_mass_pct_remaining_at_t(
+    alpha = coef(noa_model_tester)[["a"]],
+    t = ten_years)))
+                                          
+
+perc_mass_to_eyeball_fit
+
+ggplot(data = perc_mass_to_eyeball_fit_ten, aes(x = year, y = pmr)) +
+  geom_point()
+
+plot(perc_mass_to_eyeball_fit$pmr ~ perc_mass_to_eyeball_fit$year)
+
+plot(
+  x = df[which(df$treatment == "Morella"), "years_to_collection"],
+  y = df[which(df$treatment == "Morella"), "PercMassRemaining"]
+)
+lines(
+  x = t_to_eyeball_fit,
+  y = perc_mass_to_eyeball_fit,
+  t = "p",
+  col = "blue"
+)
 
 df %>%
  filter(treatment == "Morella") %>%
