@@ -139,4 +139,42 @@ SLC_plot <- ggplot(data = df, aes(x = SLC, y = SLC_a)) +
   geom_point(aes(colour = treatment))
 SLC_plot
 
+#OG version of salinity regression plot before taking out phrag and morella
+ggplot(data= df %>% filter(!is.na(class)), aes(x = mean_salinity, y = a)) + 
+  geom_point(aes(col = class)) +
+  geom_smooth(data = df_phrag_regression, method = "lm", col = "#00BA38") +
+  geom_smooth(data = df_mor_regression, method = "lm", col = "#F8766D") +
+  geom_smooth(data = df_pine_regression, method = "lm", col = "#619CFF")
 
+
+#In progress decay curve graphs
+df %>%
+  filter(SLC == "Ph2.Pine") %>%
+  add_predictions(noa_model) %>%
+  ggplot(aes(x = days_to_collection, y = PercMassRemaining, group = treatment)) +
+  geom_point() +
+  geom_line(aes(x = days_to_collection, y = pred)) +
+  ggtitle("Decay Curve: Morella Treatment") 
+
+df %>%filter(treatment == "Morella") %>%
+  add_predictions(noa_model) %>%
+  ggplot(aes(x = years_to_collection, y = PercMassRemaining)) +
+  geom_point() +
+  geom_smooth(aes(y = pred)) +
+  ylim(0.7, 1)
+
+
+
+#trying to plot a singular noa_model with ggplot and geom_smooth... not working yet
+ggplot(data=df %>% filter(treatment == "Morella"), 
+       aes(x = years_to_collection, 
+           y = PercMassRemaining)) + 
+  geom_point() +
+  geom_smooth(method="nls", 
+              formula= y ~ 1 * exp(-a * x),
+              method.args = list(
+                start = list(a = 0.02)
+                                 )
+              )
+
+noa_model

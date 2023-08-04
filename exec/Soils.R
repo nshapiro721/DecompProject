@@ -8,7 +8,7 @@ library(purrr)
 library(modelr)
 source("exec/util.R")
 
-setwd("/Users/noashapiro-tamir/Documents/dev/DecompProject")
+#setwd("/Users/noashapiro-tamir/Documents/dev/DecompProject")
 
 # Importing data
 soils_bvl <- read.csv("data/All_plots_soils.csv")
@@ -54,11 +54,17 @@ fit_EC <- lm(formula = EC ~ QC_EC, data = replicated)
 summary(fit_EC)
 
 ggplot(data = replicated, aes(x = EC, y = QC_EC)) + geom_point() +
-  geom_smooth(method = "lm", se = FALSE)
+  geom_smooth(method = "lm")+ 
+  annotate(geom = "text", 
+           x = 8500, y = 100,
+           label = "R^2 = 0.9899")
         
 fit_sal <- lm(formula = salinity ~ QC.rdg.salinity, data = replicated)
 summary(fit_sal)
 
 ggplot(data = replicated, aes(x = salinity, y = QC.rdg.salinity)) + geom_point() +
-  geom_smooth(method = "lm", se = FALSE)
+  geom_smooth(method = "lm") + 
+  annotate(geom = "text", 
+           x = 4.5, y = 1,
+           label = "R^2 = 0.9896")
 
