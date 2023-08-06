@@ -356,7 +356,7 @@ df_pine_regression <- df %>%
 ggplot(data = df_pine_regression, aes(x = mean_salinity, y = a)) + 
   geom_point(col = "#619CFF") +
   geom_smooth(method = "lm", col = "#619CFF") +
-  ggtitle("Impact of Soil Salinity on Pine Litter Decay") +
+  ggtitle("Impact of Soil Salinity on Decay (Pine Litter)") +
   xlab("Mean Soil Salinity") + 
   ylab("Decay Rate") +
   annotate(geom = "text",
@@ -385,8 +385,26 @@ ggplot(data= df %>% filter(!is.na(class)), aes(x = mean_moisture, y = a)) +
    ggtitle("Impact of Soil Moisture on Decay") +
    xlab("Mean Soil Moisture") +
    ylab("Decay Rate") +
-   scale_color_discrete(name = "Litter")
-
+   scale_color_discrete(name = "Litter") +  
+   annotate(geom = "text",
+          label = "Phragmites R^2 = 0.2557",
+          fontface = 2,
+          x = 0.72,
+          y = 0.14,
+          color = "#00BA38") +
+  annotate(geom = "text",
+           label = "Pine R^2 = 0.2694",
+           fontface = 2,
+           x = 0.70,
+           y = 0.127,
+           color = "#619CFF") +
+  annotate(geom = "text",
+           label = "Morella R^2 = 0.1389",
+           fontface = 2,
+           x = 0.71,
+           y = 0.117,
+           color = "#F8766D")
+  
 #multivariate regressions
 
 multivariate_pine <- lm(df_pine_regression, formula = a ~ mean_salinity * mean_moisture)
