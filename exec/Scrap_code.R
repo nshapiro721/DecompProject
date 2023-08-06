@@ -178,3 +178,31 @@ ggplot(data=df %>% filter(treatment == "Morella"),
               )
 
 noa_model
+
+
+df %>%
+  ggplot(aes(x = years_to_collection)) +
+  geom_point(col = "dark gray", aes(y = pred)) +
+  geom_line(aes(group = treatment, col = treatment, y = pred))+ 
+  geom_smooth(aes(y = pred),
+              method = "nls",
+              formula = 'PercMassRemaining ~ 1 * exp(-a * years_to_collection)', 
+              method.args = list(start=list(a=0.1, 
+                                            PercMassRemaining = 1, 
+                                            years_to_collection = 0),
+                                 alpha = 0.3)) 
+
++
+  ggtitle("Decay Curves Predicted by Modeled Decay Coefficients") 
+
+add_predictions(df %>% 
+                  filter(treatment == "Morella"), 
+                model = morella_model) %>%
+  ggplot(aes(x = years_to_collection)) +
+  geom_line(aes(group = treatment, col = treatment, y = pred))
+
+
+ggplot(SLC_alphas_tbl, aes(x = reorder(SLC, -a), y = a)) +
+  geom_bar(stat = "identity", width = 0.5, aes(fill = litter)) +
+  geom_errorbar(aes(ymin = a - std.error, ymax = a + std.error), width = 0.2) + 
+  theme(axis.text.x = element_text(angle = 90))

@@ -11,8 +11,12 @@ source("exec/util.R")
 df <- read.csv("data/decomp_data.csv")
 sitedf <- read.csv("data/site_contents.csv")[, c(1, 4)]
 initials <- read.csv("data/initials.csv")
+#initials$treatment <- substr(initials$SLC, 1, 2) 
+#initials$litter <- substr(initials$SLC, 5, 7)
+#initials$TLC <- interaction(as.factor(initials$treatment), as.factor(initials$litter))
 df <- merge(df, sitedf, by = "tag")
 df$SLC <- interaction(as.factor(df$site), as.factor(df$class))
+df$TLC <- interaction(as.factor(df$treatment), as.factor(df$class))
 df$PercMassRemaining <- 1 - (df$init_total_mass - df$post_total_mass) / df$init_mass_litter
 df$post_litter_mass <- df$init_mass_litter - df$mass_loss
 df <- bind_rows(df, initials)
@@ -138,7 +142,11 @@ ggplot(treatment_alphas_tbl, aes(x = treatment, y = a)) +
    #Point version (preferred)
 ggplot(treatment_alphas_tbl, aes(x = treatment, y = a)) +
   geom_point(aes(col = treatment), size = 2) +
-  geom_errorbar(aes(ymin = a - std.error, ymax = a + std.error, col = treatment), width = 0.1)
+  geom_errorbar(aes(ymin = a - std.error, ymax = a + std.error, col = treatment), width = 0.1) +
+  ggtitle("Decay Coefficient (k) for each Decay Environment \n (with standard error)") +
+  xlab("Decay Environment") +
+  ylab("k") +
+  theme(legend.position = "none")
 
 # Iterating noa_model (now morella_model) for all Site/Treatment combos
 SLC_alphas <- df %>%
@@ -164,13 +172,6 @@ df <- df %>%
 # graphs of k values
     #before joining
 
-
-
-ggplot(SLC_alphas_tbl, aes(x = reorder(SLC, -a), y = a)) +
-  geom_bar(stat = "identity", width = 0.5, aes(fill = litter)) +
-  geom_errorbar(aes(ymin = a - std.error, ymax = a + std.error), width = 0.2) + 
-  theme(axis.text.x = element_text(angle = 90))
-
 SLC_alphas_tbl <- as.data.frame(SLC_alphas_tbl) 
 SLC_alphas_tbl$site <- substr(SLC_alphas_tbl$SLC, 1, 3) 
 SLC_alphas_tbl$treatment <- substr(SLC_alphas_tbl$SLC, 1, 2)
@@ -178,10 +179,18 @@ SLC_alphas_tbl$litter = rep(c("Morella", "Phragmites", "Pinus"), 9)
 SLC_alphas_tbl$litter = as.factor(SLC_alphas_tbl$litter)
 
 ggplot(SLC_alphas_tbl, aes(x = reorder(SLC, -a), y = a)) +
-  geom_point(aes(col = treatment, shape = litter), size = 2) +
-  geom_errorbar(aes(ymin = a - std.error, ymax = a + std.error, col = treatment), 
+  geom_point(aes(col = treatment), size = 2) +
+  geom_errorbar(aes(ymin = a - std.error, ymax = a + std.error
+                    , col = treatment
+                    ), 
                 width = 0.08) + 
-  theme(axis.text.x = element_text(angle = 90))
+  scale_color_discrete(name = "Decay\nEnvironment") +
+  theme(axis.text.x = element_text(angle = 90)
+      #  , legend.title = element_text("Decay Environment")
+ ) +
+  ggtitle("Decay Coefficient (k) for each Site/Litter Combination (SLC)") +
+  xlab("SLC") + 
+  ylab("k")
 
 
 ggplot(SLC_alphas_tbl, aes(x=litter, y=a, group = treatment))+
@@ -197,8 +206,17 @@ SLC_alphas_sum = SLC_alphas_tbl%>% group_by(treatment, litter) %>%
 #interaction graph
 ggplot(SLC_alphas_sum, aes(x=treatment, y=mean_a, group = litter, color=litter))+
   geom_point(position=position_dodge(width=0.2), size = 1.5)+
-  geom_errorbar(aes(ymin = mean_a - std.error, ymax = mean_a + std.error), width = 0.35, position=position_dodge(width=0.2)) + 
-  geom_line(position = position_dodge(width = 0.2))
+  geom_errorbar(aes(ymin = mean_a - std.error, ymax = mean_a + std.error), width = 0.35, position=position_dodge(width=0.2), linetype = 5) + 
+  geom_line(position = position_dodge(width = 0.2), linetype = 1) +
+  ggtitle("Impact of Decay Environment/Litter Interaction\non Decay Rate (k) ") +
+  xlab("Decay Environment") +
+  ylab("k") +
+  scale_color_discrete(name = "Litter") +
+  theme(
+    panel.grid.major = element_blank()
+  #      , 
+    #    panel.grid.minor = element_blank()
+        )
 
 #bar version, which I like less
 ggplot(SLC_alphas_sum, aes(x=treatment, y=mean_a, group = litter, fill=litter))+
@@ -214,7 +232,9 @@ TukeyHSD(SLC_anova, "treatment")
 # plotting the curves themselves
 
   #first, some tests...
-four_years <- as.data.frame(seq(1, 4, 0.02)) %>%
+four_years <- as.data.frame(seq(1, 4, 0.02))
+
+%>%
   rename(four_years_continuous = seq)
 
 ten_years <- as.data.frame(seq(1, 10, 0.02))
@@ -244,56 +264,47 @@ perc_mass_to_eyeball_fit_ten <- ten_years %>%
 perc_mass_to_eyeball_fit
 
 ggplot(data = perc_mass_to_eyeball_fit_ten, aes(x = year, y = pmr)) +
-  geom_point()+
   geom_point(data = df %>%
                filter(treatment == "Morella") %>%
                add_predictions(model = morella_model),
-             aes(x = years_to_collection, y = PercMassRemaining))
+             aes(x = years_to_collection, y = PercMassRemaining)) + 
+  geom_point(col = "red")
 
   #now, the real thing
 
+df <- df %>% mutate(ID = row_number())
+
 morella_preds <- df %>% filter(treatment == "Morella") %>%
   add_predictions(morella_model) %>%
-  select(pred, tag)
+  select(pred, ID)
 
-phrag_preds <- df %>% filter(treatment == "Morella") %>%
+phrag_preds <- df %>% filter(treatment == "Phragmites") %>%
   add_predictions(phrag_model) %>%
-  select(pred, tag)
+  select(pred, ID)
 
-pine_preds <- df %>% filter(treatment == "Morella") %>%
+pine_preds <- df %>% filter(treatment == "Pine") %>%
   add_predictions(pine_model) %>%
-  select(pred, tag)
+  select(pred, ID)
 
 preds <- rbind(morella_preds, phrag_preds, pine_preds)
 
-df_test <- merge(preds, df, by = "tag", na.rm = FALSE) %>%
-  filter(!is.na(class)) %>%
-  ggplot(aes(x = years_to_collection, y = PercMassRemaining)) +
+df<- merge(preds, df, by = "ID")
+
+ggplot(data = df,
+       aes(x = years_to_collection, y = PercMassRemaining)) +
   geom_point(col = "dark gray") +
-  geom_smooth(aes(group = treatment, col = treatment, y = pred, fill = treatment), alpha = 0.3) +
-ggtitle("Deca Curves Predicted by Modeled Decay Coefficients") 
-
-df_test
-
-
- %>%
-   ggplot(aes(x = years_to_collection)) +
-   geom_point(col = "dark gray", aes(y = pred)) +
-geom_line(aes(group = treatment, col = treatment, y = pred))+ 
-  geom_smooth(aes(y = pred),
-              method = "nls",
-              formula = 'PercMassRemaining ~ 1 * exp(-a * years_to_collection)', 
-              method.args = list(start=list(a=0.1, 
-                                            PercMassRemaining = 1, 
-                                            years_to_collection = 0),
-              alpha = 0.3)) 
-
-+
-  ggtitle("Decay Curves Predicted by Modeled Decay Coefficients") 
-
-add_predictions(df %>% 
-                  filter(treatment == "Morella"), 
-                model = morella_model)
+  geom_smooth(aes(y = pred, 
+                  group = treatment, 
+                  col = treatment, 
+                  fill = treatment), 
+              alpha = 0.3) +
+  ggtitle("Modeled Decay Rate Curves for each Decay Environment") +
+  labs(subtitle = "    with 95% confidence interval") +
+  xlab("Years to Collection") +
+  xlim(c(0,1)) +
+  ylab("Percent Mass Remaining") +
+  scale_color_discrete(name = "Decay\nEnvironment") +
+  scale_fill_discrete(name = "Decay\nEnvironment")
 
 #Bringing in soil data
 soils_decomp <- read.csv("data/Decomp_soils.csv")
@@ -346,21 +357,35 @@ ggplot(data = df_pine_regression, aes(x = mean_salinity, y = a)) +
   geom_point(col = "#619CFF") +
   geom_smooth(method = "lm", col = "#619CFF") +
   ggtitle("Impact of Soil Salinity on Pine Litter Decay") +
-  xlab("Mean Soil Salinity at each Site") + 
+  xlab("Mean Soil Salinity") + 
   ylab("Decay Rate") +
   annotate(geom = "text",
            label = "R^2 = 0.2752",
+           fontface = 2,
            x = 1,
-           y = 0.15)
+           y = 0.16)
 
 ggplot(data= df %>% filter(!is.na(class)), aes(x = mean_moisture, y = a)) + 
    geom_point(aes(col = class)) +
-   geom_smooth(data = df_phrag_regression, method = "lm", col = "#00BA38") +
-   geom_smooth(data = df_mor_regression, method = "lm", col = "#F8766D") +
-   geom_smooth(data = df_pine_regression, method = "lm", col = "#619CFF") +
+   geom_smooth(data = df_phrag_regression, 
+               method = "lm", 
+               col = "#00BA38", 
+               fill = "#00BA38", 
+               alpha = 0.3) +
+   geom_smooth(data = df_mor_regression, 
+               method = "lm", 
+               col = "#F8766D", 
+               fill = "#F8766D", 
+               alpha = 0.3) +
+   geom_smooth(data = df_pine_regression, 
+               method = "lm", 
+               col = "#619CFF", 
+               fill = "#619CFF", 
+               alpha = 0.3) +
    ggtitle("Impact of Soil Moisture on Decay") +
-   xlab("Mean Soil Moisture at each site") +
-   ylab("Decay Rate")
+   xlab("Mean Soil Moisture") +
+   ylab("Decay Rate") +
+   scale_color_discrete(name = "Litter")
 
 #multivariate regressions
 
@@ -372,4 +397,43 @@ summary(multivariate_phrag)
 
 multivariate_mor <- lm(df_mor_regression, formula = a ~ mean_salinity * mean_moisture)
 summary(multivariate_mor)
+
+#I'm crazy I'm crazy I want to try Treatment litter combos now
+TLC_alphas <- df %>%
+  nest(-TLC) %>%
+  mutate(
+    fit = map(data, ~ nls(PercMassRemaining ~ 1 * exp(-a * years_to_collection), data = ., start = list(a = 0.1))),
+    tidied = map(fit, tidy),
+    Augmented = map(fit, augment),
+  )
+
+TLC_alphas_tbl <-
+  TLC_alphas %>%
+  unnest(tidied) %>%
+  select(TLC, term, estimate, std.error) %>%
+  spread(term, estimate)
+
+
+TLC_alphas_tbl
+
+df <- df %>%
+  merge(TLC_alphas_tbl, by = "TLC")
+
+# graphs of k values
+#before joining
+
+SLC_alphas_tbl <- as.data.frame(SLC_alphas_tbl) 
+SLC_alphas_tbl$site <- substr(SLC_alphas_tbl$SLC, 1, 3) 
+SLC_alphas_tbl$treatment <- substr(SLC_alphas_tbl$SLC, 1, 2)
+SLC_alphas_tbl$litter = rep(c("Morella", "Phragmites", "Pinus"), 9)
+SLC_alphas_tbl$litter = as.factor(SLC_alphas_tbl$litter)
+
+ggplot(SLC_alphas_tbl, aes(x = reorder(SLC, -a), y = a)) +
+  geom_point(aes(col = litter), size = 2) +
+  geom_errorbar(aes(ymin = a - std.error, ymax = a + std.error
+                    #       , col = treatment
+  ), 
+  width = 0.08) + 
+  theme(axis.text.x = element_text(angle = 90)) +
+  ggtitle("Decay Coefficient (k) for each Litter at each Site")
 
