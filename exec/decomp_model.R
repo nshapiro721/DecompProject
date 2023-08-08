@@ -32,7 +32,11 @@ df$years_to_collection <- df$days_to_collection/365
 
 # visualizing the weird bump at the third collection date
 ggplot(df, aes(x = days_to_collection, y = PercMassRemaining)) +
-  geom_point()
+  geom_point() +
+  ggtitle("Raw Data") +
+  xlab("Days to Collection") +
+  ylab("Percent Mass Remaining")
+  
 boxplot(df$PercMassRemaining ~ df$days_to_collection, outlier_tagging = TRUE)
 
 find_outliers_df <- df %>%
@@ -395,14 +399,14 @@ ggplot(data= df %>% filter(!is.na(class)), aes(x = mean_moisture, y = a)) +
   annotate(geom = "text",
            label = "Pine R^2 = 0.2694",
            fontface = 2,
-           x = 0.70,
+           x = 0.74,
            y = 0.127,
            color = "#619CFF") +
   annotate(geom = "text",
            label = "Morella R^2 = 0.1389",
            fontface = 2,
-           x = 0.71,
-           y = 0.117,
+           x = 0.731,
+           y = 0.115,
            color = "#F8766D")
   
 #multivariate regressions
