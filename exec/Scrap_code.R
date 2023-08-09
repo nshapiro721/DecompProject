@@ -206,3 +206,123 @@ ggplot(SLC_alphas_tbl, aes(x = reorder(SLC, -a), y = a)) +
   geom_bar(stat = "identity", width = 0.5, aes(fill = litter)) +
   geom_errorbar(aes(ymin = a - std.error, ymax = a + std.error), width = 0.2) + 
   theme(axis.text.x = element_text(angle = 90))
+
+
+#litter type regressions
+df_phrag_regression <- df %>% 
+  filter(class == "Phragmites")
+
+phrag_regression_sal <- df_phrag_regression %>%
+  lm(formula = mean_salinity ~ a)
+summary(phrag_regression_sal)
+
+phrag_regression_mois <- df_phrag_regression %>%
+  lm(formula = a ~ mean_moisture)
+summary(phrag_regression_mois)
+
+df_mor_regression <- df %>%
+  filter(class == "Morella")
+
+mor_regression_sal <- df_mor_regression %>%
+  lm(formula = mean_salinity ~ a)
+summary(mor_regression_sal)
+
+mor_regression_mois <- df_mor_regression %>%
+  lm(formula = mean_moisture ~ a)
+summary(mor_regression_mois)
+
+df_pine_regression <- df %>%
+  filter(class == "Pine")
+
+pine_regression_sal <- df_pine_regression %>%
+  lm(formula = mean_salinity ~ a)
+summary(pine_regression_sal)
+
+pine_regression_mois <- df_pine_regression %>%
+  lm(formula = mean_moisture ~ a)
+summary(pine_regression_mois)
+
+ggplot(data = df_pine_regression, aes(x = mean_salinity, y = a)) + 
+  geom_point(col = "#619CFF") +
+  geom_smooth(method = "lm", col = "#619CFF") +
+  ggtitle("Impact of Soil Salinity on Decay (Pine Litter)") +
+  xlab("Mean Soil Salinity") + 
+  ylab("Decay Rate") +
+  annotate(geom = "text",
+           label = "R^2 = 0.2752",
+           fontface = 2,
+           x = 1,
+           y = 0.16)
+
+ggplot(data= df %>% filter(!is.na(class)), aes(x = mean_moisture, y = a)) + 
+  geom_point(aes(col = class)) +
+  geom_smooth(data = df_phrag_regression, 
+              method = "lm", 
+              col = "#00BA38", 
+              fill = "#00BA38", 
+              alpha = 0.3) +
+  geom_smooth(data = df_mor_regression, 
+              method = "lm", 
+              col = "#F8766D", 
+              fill = "#F8766D", 
+              alpha = 0.3) +
+  geom_smooth(data = df_pine_regression, 
+              method = "lm", 
+              col = "#619CFF", 
+              fill = "#619CFF", 
+              alpha = 0.3) +
+  ggtitle("Impact of Soil Moisture on Decay") +
+  xlab("Mean Soil Moisture") +
+  ylab("Decay Rate") +
+  scale_color_discrete(name = "Litter") +  
+  annotate(geom = "text",
+           label = "Phragmites R^2 = 0.2557",
+           fontface = 2,
+           x = 0.72,
+           y = 0.14,
+           color = "#00BA38") +
+  annotate(geom = "text",
+           label = "Pine R^2 = 0.2694",
+           fontface = 2,
+           x = 0.74,
+           y = 0.127,
+           color = "#619CFF") +
+  annotate(geom = "text",
+           label = "Morella R^2 = 0.1389",
+           fontface = 2,
+           x = 0.731,
+           y = 0.115,
+           color = "#F8766D")
+
+#multivariate regressions
+
+multivariate_pine <- lm(df_pine_regression, formula = a ~ mean_salinity * mean_moisture)
+summary(multivariate_pine)
+
+multivariate_phrag <- lm(df_phrag_regression, formula = a ~ mean_salinity * mean_moisture)
+summary(multivariate_phrag)
+
+multivariate_mor <- lm(df_mor_regression, formula = a ~ mean_salinity * mean_moisture)
+summary(multivariate_mor)
+
+#I'm crazy I'm crazy I want to try Treatment litter combos now
+TLC_alphas <- df %>%
+  nest(-TLC) %>%
+  mutate(
+    fit = map(data, ~ nls(PercMassRemaining ~ 1 * exp(-a * years_to_collection), data = ., start = list(a = 0.1))),
+    tidied = map(fit, tidy),
+    Augmented = map(fit, augment),
+  )
+
+TLC_alphas_tbl <-
+  TLC_alphas %>%
+  unnest(tidied) %>%
+  select(TLC, term, estimate, std.error) %>%
+  spread(term, estimate)
+
+
+TLC_alphas_tbl
+
+df <- df %>%
+  merge(TLC_alphas_tbl, by = "TLC")
+
