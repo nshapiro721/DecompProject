@@ -26,22 +26,22 @@ models <- lapply(
 
 # Testing Noa model - trying to do here what Riley did with Cool model. Not sure if it actually shows us new info or not.
 t_to_eyeball_fit <- 1:365
-perc_mass_to_eyeball_fit_noa <- get_mass_pct_remaining_at_t(
-  a = coef(noa_model)[["a"]],
-  t = t_to_eyeball_fit
-)
-plot(
-  x = df[which(df$treatment == "Morella"), "years_to_collection"],
-  y = df[which(df$treatment == "Morella"), "PercMassRemaining"]
-)
-lines(
-  x = t_to_eyeball_fit,
-  y = perc_mass_to_eyeball_fit_noa,
-  t = "p",
-  col = "blue"
-)
+# perc_mass_to_eyeball_fit_noa <- get_mass_pct_remaining_at_t(
+#   a = coef(noa_model)[["a"]],
+#   t = t_to_eyeball_fit
+# )
+# plot(
+#   x = df[which(df$treatment == "Morella"), "years_to_collection"],
+#   y = df[which(df$treatment == "Morella"), "PercMassRemaining"]
+# )
+# lines(
+#   x = t_to_eyeball_fit,
+#   y = perc_mass_to_eyeball_fit_noa,
+#   t = "p",
+#   col = "blue"
+# )
 
-# Iterating noa_model (now morella_model) for all treatments
+# Iterating noa_model (now models$Morella) for all treatments
 treatment_alphas <- df %>%
   nest(-treatment) %>%
   mutate(
@@ -57,9 +57,9 @@ treatment_alphas_tbl <- treatment_alphas %>%
 
 treatment_alphas_tbl
 
-deviance(morella_model)
-deviance(phrag_model)
-deviance(pine_model)
+deviance(models$Morella)
+deviance(models$Phragmites)
+deviance(models$Pine)
 
 # graphing treatment alphas with standard error from treatment model
 # Bar version
@@ -77,7 +77,7 @@ ggplot(treatment_alphas_tbl, aes(x = treatment, y = a)) +
   theme(legend.position = "none") +
   ylim(c(0.19, 0.29))
 
-# Iterating noa_model (now morella_model) for all Site/Treatment combos
+# Iterating noa_model (now models$Morella) for all Site/Treatment combos
 SLC_alphas <- df %>%
   nest(-SLC) %>%
   mutate(
@@ -225,17 +225,17 @@ df <- df %>% mutate(ID = row_number())
 
 morella_preds <- df %>%
   filter(treatment == "Morella") %>%
-  add_predictions(morella_model) %>%
+  add_predictions(models$Morella) %>%
   select(pred, ID)
 
 phrag_preds <- df %>%
   filter(treatment == "Phragmites") %>%
-  add_predictions(phrag_model) %>%
+  add_predictions(models$Phragmites) %>%
   select(pred, ID)
 
 pine_preds <- df %>%
   filter(treatment == "Pine") %>%
-  add_predictions(pine_model) %>%
+  add_predictions(models$Pine) %>%
   select(pred, ID)
 
 preds <- rbind(morella_preds, phrag_preds, pine_preds)
@@ -305,7 +305,7 @@ ggplot(data = perc_mass_to_eyeball_fit_ten, aes(x = years_to_collection)) +
   geom_point(
     data = df %>%
       filter(treatment == "Morella") %>%
-      add_predictions(model = morella_model),
+      add_predictions(model = models$Morella),
     aes(x = years_to_collection, y = PercMassRemaining)
   ) +
   ggtitle("Decay Curve of Litter Under Morella Over 10 Years") +
