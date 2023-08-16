@@ -45,7 +45,7 @@ t_to_eyeball_fit <- 1:365
 treatment_alphas <- df %>%
   nest(-treatment) %>%
   mutate(
-    fit = map(data, ~ nls(PercMassRemaining ~ 1 * exp(-a * years_to_collection), data = df, start = list(a = 0.1))),
+    fit = map(data, ~ nls(PercMassRemaining ~ 1 * exp(-a * years_to_collection), start = list(a = 0.1))),
     tidied = map(fit, tidy),
     Augmented = map(fit, augment),
   )
@@ -81,7 +81,7 @@ ggplot(treatment_alphas_tbl, aes(x = treatment, y = a)) +
 SLC_alphas <- df %>%
   nest(-SLC) %>%
   mutate(
-    fit = map(data, ~ nls(PercMassRemaining ~ 1 * exp(-a * years_to_collection), data = df, start = list(a = 0.01))),
+    fit = map(data, ~ nls(PercMassRemaining ~ 1 * exp(-a * years_to_collection), data = ., start = list(a = 0.01))),
     tidied = map(fit, tidy),
     Augmented = map(fit, augment),
   )
