@@ -97,12 +97,19 @@ phrag_model <- nls(
   start = list(a = 0.02)
 )
 
+phrag_model 
+
 pine_model <- nls(
   PercMassRemaining ~ 1 * exp(-a * years_to_collection),
   data = df %>% filter(treatment == "Pine"),
   start = list(a = 0.02)
 )
 
+pine_model
+
+deviance(morella_model)
+deviance(phrag_model)
+deviance(pine_model)
 
 # Testing Noa model - trying to do here what Riley did with Cool model. Not sure if it actually shows us new info or not.
 t_to_eyeball_fit <- 1:365
@@ -137,9 +144,6 @@ treatment_alphas_tbl <- treatment_alphas %>%
 
 treatment_alphas_tbl
 
-deviance(morella_model)
-deviance(phrag_model)
-deviance(pine_model)
 
 #graphing treatment alphas with standard error from treatment model
    #Bar version
