@@ -108,14 +108,18 @@ df %>%
 # this tries to create graphs from not a single model but the iterated versions, but it doesn't know how to predict from a model with so many nested layers, and I don't blame it. Help!
 
 
-#joining...
+# joining...
 df %>%
   merge(treatment_alphas_tbl, by = "treatment") %>%
-  rename(trtmt_a = a,
-         trtmt_std_err = std.error) %>%
+  rename(
+    trtmt_a = a,
+    trtmt_std_err = std.error
+  ) %>%
   merge(SLC_alphas_tbl, by = "SLC") %>%
-  rename(slc_a = a,
-         slc_std_err = std.error)
+  rename(
+    slc_a = a,
+    slc_std_err = std.error
+  )
 
 
 
@@ -139,24 +143,25 @@ SLC_plot <- ggplot(data = df, aes(x = SLC, y = SLC_a)) +
   geom_point(aes(colour = treatment))
 SLC_plot
 
-#OG version of salinity regression plot before taking out phrag and morella
-ggplot(data= df %>% filter(!is.na(class)), aes(x = mean_salinity, y = a)) + 
+# OG version of salinity regression plot before taking out phrag and morella
+ggplot(data = df %>% filter(!is.na(class)), aes(x = mean_salinity, y = a)) +
   geom_point(aes(col = class)) +
   geom_smooth(data = df_phrag_regression, method = "lm", col = "#00BA38") +
   geom_smooth(data = df_mor_regression, method = "lm", col = "#F8766D") +
   geom_smooth(data = df_pine_regression, method = "lm", col = "#619CFF")
 
 
-#In progress decay curve graphs
+# In progress decay curve graphs
 df %>%
   filter(SLC == "Ph2.Pine") %>%
   add_predictions(noa_model) %>%
   ggplot(aes(x = days_to_collection, y = PercMassRemaining, group = treatment)) +
   geom_point() +
   geom_line(aes(x = days_to_collection, y = pred)) +
-  ggtitle("Decay Curve: Morella Treatment") 
+  ggtitle("Decay Curve: Morella Treatment")
 
-df %>%filter(treatment == "Morella") %>%
+df %>%
+  filter(treatment == "Morella") %>%
   add_predictions(noa_model) %>%
   ggplot(aes(x = years_to_collection, y = PercMassRemaining)) +
   geom_point() +
@@ -165,17 +170,22 @@ df %>%filter(treatment == "Morella") %>%
 
 
 
-#trying to plot a singular noa_model with ggplot and geom_smooth... not working yet
-ggplot(data=df %>% filter(treatment == "Morella"), 
-       aes(x = years_to_collection, 
-           y = PercMassRemaining)) + 
+# trying to plot a singular noa_model with ggplot and geom_smooth... not working yet
+ggplot(
+  data = df %>% filter(treatment == "Morella"),
+  aes(
+    x = years_to_collection,
+    y = PercMassRemaining
+  )
+) +
   geom_point() +
-  geom_smooth(method="nls", 
-              formula= y ~ 1 * exp(-a * x),
-              method.args = list(
-                start = list(a = 0.02)
-                                 )
-              )
+  geom_smooth(
+    method = "nls",
+    formula = y ~ 1 * exp(-a * x),
+    method.args = list(
+      start = list(a = 0.02)
+    )
+  )
 
 noa_model
 
@@ -183,33 +193,40 @@ noa_model
 df %>%
   ggplot(aes(x = years_to_collection)) +
   geom_point(col = "dark gray", aes(y = pred)) +
-  geom_line(aes(group = treatment, col = treatment, y = pred))+ 
+  geom_line(aes(group = treatment, col = treatment, y = pred)) +
   geom_smooth(aes(y = pred),
-              method = "nls",
-              formula = 'PercMassRemaining ~ 1 * exp(-a * years_to_collection)', 
-              method.args = list(start=list(a=0.1, 
-                                            PercMassRemaining = 1, 
-                                            years_to_collection = 0),
-                                 alpha = 0.3)) 
+    method = "nls",
+    formula = "PercMassRemaining ~ 1 * exp(-a * years_to_collection)",
+    method.args = list(
+      start = list(
+        a = 0.1,
+        PercMassRemaining = 1,
+        years_to_collection = 0
+      ),
+      alpha = 0.3
+    )
+  )
 
 +
-  ggtitle("Decay Curves Predicted by Modeled Decay Coefficients") 
+  ggtitle("Decay Curves Predicted by Modeled Decay Coefficients")
 
-add_predictions(df %>% 
-                  filter(treatment == "Morella"), 
-                model = morella_model) %>%
+add_predictions(
+  df %>%
+    filter(treatment == "Morella"),
+  model = morella_model
+) %>%
   ggplot(aes(x = years_to_collection)) +
   geom_line(aes(group = treatment, col = treatment, y = pred))
 
 
 ggplot(SLC_alphas_tbl, aes(x = reorder(SLC, -a), y = a)) +
   geom_bar(stat = "identity", width = 0.5, aes(fill = litter)) +
-  geom_errorbar(aes(ymin = a - std.error, ymax = a + std.error), width = 0.2) + 
+  geom_errorbar(aes(ymin = a - std.error, ymax = a + std.error), width = 0.2) +
   theme(axis.text.x = element_text(angle = 90))
 
 
-#litter type regressions
-df_phrag_regression <- df %>% 
+# litter type regressions
+df_phrag_regression <- df %>%
   filter(class == "Phragmites")
 
 phrag_regression_sal <- df_phrag_regression %>%
@@ -242,59 +259,73 @@ pine_regression_mois <- df_pine_regression %>%
   lm(formula = mean_moisture ~ a)
 summary(pine_regression_mois)
 
-ggplot(data = df_pine_regression, aes(x = mean_salinity, y = a)) + 
+ggplot(data = df_pine_regression, aes(x = mean_salinity, y = a)) +
   geom_point(col = "#619CFF") +
   geom_smooth(method = "lm", col = "#619CFF") +
   ggtitle("Impact of Soil Salinity on Decay (Pine Litter)") +
-  xlab("Mean Soil Salinity") + 
+  xlab("Mean Soil Salinity") +
   ylab("Decay Rate") +
-  annotate(geom = "text",
-           label = "R^2 = 0.2752",
-           fontface = 2,
-           x = 1,
-           y = 0.16)
+  annotate(
+    geom = "text",
+    label = "R^2 = 0.2752",
+    fontface = 2,
+    x = 1,
+    y = 0.16
+  )
 
-ggplot(data= df %>% filter(!is.na(class)), aes(x = mean_moisture, y = a)) + 
+ggplot(data = df %>% filter(!is.na(class)), aes(x = mean_moisture, y = a)) +
   geom_point(aes(col = class)) +
-  geom_smooth(data = df_phrag_regression, 
-              method = "lm", 
-              col = "#00BA38", 
-              fill = "#00BA38", 
-              alpha = 0.3) +
-  geom_smooth(data = df_mor_regression, 
-              method = "lm", 
-              col = "#F8766D", 
-              fill = "#F8766D", 
-              alpha = 0.3) +
-  geom_smooth(data = df_pine_regression, 
-              method = "lm", 
-              col = "#619CFF", 
-              fill = "#619CFF", 
-              alpha = 0.3) +
+  geom_smooth(
+    data = df_phrag_regression,
+    method = "lm",
+    col = "#00BA38",
+    fill = "#00BA38",
+    alpha = 0.3
+  ) +
+  geom_smooth(
+    data = df_mor_regression,
+    method = "lm",
+    col = "#F8766D",
+    fill = "#F8766D",
+    alpha = 0.3
+  ) +
+  geom_smooth(
+    data = df_pine_regression,
+    method = "lm",
+    col = "#619CFF",
+    fill = "#619CFF",
+    alpha = 0.3
+  ) +
   ggtitle("Impact of Soil Moisture on Decay") +
   xlab("Mean Soil Moisture") +
   ylab("Decay Rate") +
-  scale_color_discrete(name = "Litter") +  
-  annotate(geom = "text",
-           label = "Phragmites R^2 = 0.2557",
-           fontface = 2,
-           x = 0.72,
-           y = 0.14,
-           color = "#00BA38") +
-  annotate(geom = "text",
-           label = "Pine R^2 = 0.2694",
-           fontface = 2,
-           x = 0.74,
-           y = 0.127,
-           color = "#619CFF") +
-  annotate(geom = "text",
-           label = "Morella R^2 = 0.1389",
-           fontface = 2,
-           x = 0.731,
-           y = 0.115,
-           color = "#F8766D")
+  scale_color_discrete(name = "Litter") +
+  annotate(
+    geom = "text",
+    label = "Phragmites R^2 = 0.2557",
+    fontface = 2,
+    x = 0.72,
+    y = 0.14,
+    color = "#00BA38"
+  ) +
+  annotate(
+    geom = "text",
+    label = "Pine R^2 = 0.2694",
+    fontface = 2,
+    x = 0.74,
+    y = 0.127,
+    color = "#619CFF"
+  ) +
+  annotate(
+    geom = "text",
+    label = "Morella R^2 = 0.1389",
+    fontface = 2,
+    x = 0.731,
+    y = 0.115,
+    color = "#F8766D"
+  )
 
-#multivariate regressions
+# multivariate regressions
 
 multivariate_pine <- lm(df_pine_regression, formula = a ~ mean_salinity * mean_moisture)
 summary(multivariate_pine)
@@ -305,7 +336,7 @@ summary(multivariate_phrag)
 multivariate_mor <- lm(df_mor_regression, formula = a ~ mean_salinity * mean_moisture)
 summary(multivariate_mor)
 
-#I'm crazy I'm crazy I want to try Treatment litter combos now
+# I'm crazy I'm crazy I want to try Treatment litter combos now
 TLC_alphas <- df %>%
   nest(-TLC) %>%
   mutate(
@@ -325,4 +356,3 @@ TLC_alphas_tbl
 
 df <- df %>%
   merge(TLC_alphas_tbl, by = "TLC")
-

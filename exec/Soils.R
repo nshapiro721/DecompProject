@@ -8,7 +8,7 @@ library(purrr)
 library(modelr)
 source("exec/util.R")
 
-#setwd("/Users/noashapiro-tamir/Documents/dev/DecompProject")
+# setwd("/Users/noashapiro-tamir/Documents/dev/DecompProject")
 
 # Importing data
 soils_bvl <- read.csv("data/All_plots_soils.csv")
@@ -19,9 +19,11 @@ soils_decomp[21, 2] <- "Pi1"
 soils_bvl[84, 11] <- 20200
 soils_bvl[84, 12] <- 10.06
 soils_bvl <- soils_bvl %>%
-  mutate(EC = as.numeric(EC_uS.cm),
-         salinity = as.numeric(Salinity_ppt),
-         QC_EC = as.numeric(QC.rdg.EC))
+  mutate(
+    EC = as.numeric(EC_uS.cm),
+    salinity = as.numeric(Salinity_ppt),
+    QC_EC = as.numeric(QC.rdg.EC)
+  )
 
 
 soils_decomp <- soils_decomp %>%
@@ -41,7 +43,7 @@ ggplot(data = soils_decomp, aes(x = Salinity_ppt, y = percentage_moisture, col =
 ggplot(data = soils_decomp, aes(y = percentage_moisture, group = site)) +
   geom_boxplot()
 
-#looking at plot data
+# looking at plot data
 
 ggplot(data = soils_bvl, aes(y = EC, x = plot, col = zone)) +
   geom_point()
@@ -53,18 +55,23 @@ replicated <- soils_bvl %>%
 fit_EC <- lm(formula = EC ~ QC_EC, data = replicated)
 summary(fit_EC)
 
-ggplot(data = replicated, aes(x = EC, y = QC_EC)) + geom_point() +
-  geom_smooth(method = "lm")+ 
-  annotate(geom = "text", 
-           x = 8500, y = 100,
-           label = "R^2 = 0.9899")
-        
+ggplot(data = replicated, aes(x = EC, y = QC_EC)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  annotate(
+    geom = "text",
+    x = 8500, y = 100,
+    label = "R^2 = 0.9899"
+  )
+
 fit_sal <- lm(formula = salinity ~ QC.rdg.salinity, data = replicated)
 summary(fit_sal)
 
-ggplot(data = replicated, aes(x = salinity, y = QC.rdg.salinity)) + geom_point() +
-  geom_smooth(method = "lm") + 
-  annotate(geom = "text", 
-           x = 4.5, y = 1,
-           label = "R^2 = 0.9896")
-
+ggplot(data = replicated, aes(x = salinity, y = QC.rdg.salinity)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  annotate(
+    geom = "text",
+    x = 4.5, y = 1,
+    label = "R^2 = 0.9896"
+  )
