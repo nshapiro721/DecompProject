@@ -24,28 +24,17 @@ models <- lapply(
 ) # models is a list containing a model for each treatment, 
   # using the formula defined by model_formula
 
-# Testing Noa model - trying to do here what Riley did with Cool model. Not sure if it actually shows us new info or not.
-t_to_eyeball_fit <- 1:365
-# perc_mass_to_eyeball_fit_noa <- get_mass_pct_remaining_at_t(
-#   a = coef(noa_model)[["a"]],
-#   t = t_to_eyeball_fit
-# )
-# plot(
-#   x = df[which(df$treatment == "Morella"), "years_to_collection"],
-#   y = df[which(df$treatment == "Morella"), "PercMassRemaining"]
-# )
-# lines(
-#   x = t_to_eyeball_fit,
-#   y = perc_mass_to_eyeball_fit_noa,
-#   t = "p",
-#   col = "blue"
-# )
+# tests of the model for each treatment
+deviance(models$Morella)
+deviance(models$Phragmites)
+deviance(models$Pine)
 
-# Iterating noa_model (now models$Morella) for all treatments
+# Iterating treatment model for all treatments (this does probably the same thing as Riley accomplished above, but is what I did originally, as instructed by the Douglas Watson article on non-linear modeling of decay: https://douglas-watson.github.io/post/2018-09_exponential_curve_fitting/ )
+
 treatment_alphas <- df %>%
   nest(-treatment) %>%
   mutate(
-    fit = map(data, ~ nls(PercMassRemaining ~ 1 * exp(-a * years_to_collection), start = list(a = 0.1))),
+    fit = map(data, ~ nls(PercMassRemaining ~ 1 * exp(-a * years_to_collection), data = ., start = list(a = 0.1))),
     tidied = map(fit, tidy),
     Augmented = map(fit, augment),
   )
@@ -57,27 +46,7 @@ treatment_alphas_tbl <- treatment_alphas %>%
 
 treatment_alphas_tbl
 
-deviance(models$Morella)
-deviance(models$Phragmites)
-deviance(models$Pine)
-
-# graphing treatment alphas with standard error from treatment model
-# Bar version
-ggplot(treatment_alphas_tbl, aes(x = treatment, y = a)) +
-  geom_bar(stat = "identity", width = 0.5, fill = "light blue") +
-  geom_errorbar(aes(ymin = a - std.error, ymax = a + std.error), width = 0.2)
-
-# Point version (preferred)
-ggplot(treatment_alphas_tbl, aes(x = treatment, y = a)) +
-  geom_point(aes(col = treatment), size = 2) +
-  geom_errorbar(aes(ymin = a - std.error, ymax = a + std.error, col = treatment), width = 0.1) +
-  ggtitle("Decay Coefficient (k) for each Decay Environment \n (with standard error)") +
-  xlab("Decay Environment") +
-  ylab("k") +
-  theme(legend.position = "none") +
-  ylim(c(0.19, 0.29))
-
-# Iterating noa_model (now models$Morella) for all Site/Treatment combos
+# Iterating models of alpha for all Site/Treatment combos
 SLC_alphas <- df %>%
   nest(-SLC) %>%
   mutate(
@@ -98,40 +67,11 @@ SLC_alphas_tbl
 df <- df %>%
   merge(SLC_alphas_tbl, by = "SLC")
 
-# graphs of k values
-# before joining
-
 SLC_alphas_tbl <- as.data.frame(SLC_alphas_tbl)
 SLC_alphas_tbl$site <- substr(SLC_alphas_tbl$SLC, 1, 3)
 SLC_alphas_tbl$treatment <- substr(SLC_alphas_tbl$SLC, 1, 2)
 SLC_alphas_tbl$litter <- rep(c("Morella", "Phragmites", "Pinus"), 9)
 SLC_alphas_tbl$litter <- as.factor(SLC_alphas_tbl$litter)
-
-ggplot(SLC_alphas_tbl, aes(x = reorder(SLC, -a), y = a)) +
-  geom_point(aes(col = treatment), size = 2) +
-  geom_errorbar(
-    aes(
-      ymin = a - std.error, ymax = a + std.error,
-      col = treatment
-    ),
-    width = 0.08
-  ) +
-  scale_color_discrete(name = "Decay\nEnvironment") +
-  theme(
-    axis.text.x = element_text(angle = 90)
-    #  , legend.title = element_text("Decay Environment")
-  ) +
-  ggtitle("Decay Coefficient (k) for each Site/Litter Combination (SLC)") +
-  xlab("SLC") +
-  ylab("k")
-
-
-
-ggplot(SLC_alphas_tbl, aes(x = treatment, y = a, group = treatment)) +
-  geom_point(aes(color = litter))
-# geom_line(aes(color=treatment))+
-# geom_errorbar(aes(ymin = a - std.error, ymax = a + std.error), width = 0.2)
-# ^each site as a different point
 
 SLC_alphas_sum <- SLC_alphas_tbl %>%
   group_by(treatment, litter) %>%
@@ -140,7 +80,9 @@ SLC_alphas_sum <- SLC_alphas_tbl %>%
     std.error = sd(a) / sqrt(length(a))
   )
 
-# Graph of treatment alphas using averaged SLC data
+# graphs of alpha values
+
+# graph of treatment alphas using averaged SLC data
 SLC_alphas_tbl %>%
   group_by(treatment) %>%
   summarize(
@@ -198,29 +140,36 @@ ggplot(SLC_alphas_sum, aes(x = treatment, y = mean_a, group = litter, color = li
   ylab("k") +
   scale_color_discrete(name = "Litter") +
   theme(
-    panel.grid.major = element_blank()
-    #      ,
-    #    panel.grid.minor = element_blank()
-  )
+    panel.grid.major = element_blank())
 
-# bar version, which I like less
-ggplot(SLC_alphas_sum, aes(x = treatment, y = mean_a, group = litter, fill = litter)) +
-  geom_bar(stat = "identity", position = position_dodge(width = 0.6), width = 0.5) +
-  geom_errorbar(aes(ymin = mean_a - std.error, ymax = mean_a + std.error),
-    width = 0.2,
-    position = position_dodge(width = 0.6)
-  )
-
+# anova & tukey tests of site/litter interactions
 SLC_anova <- aov(data = SLC_alphas_tbl, a ~ treatment * litter)
 summary(SLC_anova)
 TukeyHSD(SLC_anova, "treatment")
 
 # plotting the curves themselves
 
+# From Riley: example of using lapply() to avoid repetitive code.
+model_formula <- as.formula(PercMassRemaining ~ exp(-a * years_to_collection))
+treatments <- split(df, df$treatment)
+models <- lapply(
+  X = treatments, 
+  FUN = function(treat_data) {
+    nls(
+      formula = model_formula,
+      data = treat_data,
+      start = list(a = 0.02)
+    )
+  }
+) # models is a list containing a model for each treatment, 
+# using the formula defined by model_formula
 
-
-# first, the real thing
-
+lapply(
+  X = ,
+  FUN = function() {
+    add_predictions()
+  }
+)
 df <- df %>% mutate(ID = row_number())
 
 morella_preds <- df %>%
@@ -264,7 +213,7 @@ ggplot(
   scale_color_discrete(name = "Decay\nEnvironment") +
   scale_fill_discrete(name = "Decay\nEnvironment")
 
-# then, some tests...
+# some tests to make sure the curves are actually curves
 four_years <- as.data.frame(seq(1, 4, 0.02)) %>%
   rename(four_years_continuous = seq)
 
@@ -292,7 +241,6 @@ perc_mass_to_eyeball_fit_ten <- ten_years %>%
     alpha = coef(noa_model_tester)[["a"]],
     t = ten_years
   )))
-
 
 perc_mass_to_eyeball_fit
 

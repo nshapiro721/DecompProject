@@ -7,3 +7,4 @@ cool_model <- nls(
   start = list(a = 0.02)
 )
 cool_model
+

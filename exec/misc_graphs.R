@@ -44,3 +44,50 @@ lines(
   t = "p",
   col = "blue"
 )
+
+# Bar version of treatment alphas
+ggplot(treatment_alphas_tbl, aes(x = treatment, y = a)) +
+  geom_bar(stat = "identity", width = 0.5, fill = "light blue") +
+  geom_errorbar(aes(ymin = a - std.error, ymax = a + std.error), width = 0.2)
+
+
+# graphing treatment alphas with standard error from treatment model
+ggplot(treatment_alphas_tbl, aes(x = treatment, y = a)) +
+  geom_point(aes(col = treatment), size = 2) +
+  geom_errorbar(aes(ymin = a - std.error, ymax = a + std.error, col = treatment), width = 0.1) +
+  ggtitle("Decay Coefficient (k) for each Decay Environment \n (with standard error)") +
+  xlab("Decay Environment") +
+  ylab("k") +
+  theme(legend.position = "none") +
+  ylim(c(0.19, 0.29))
+
+# each site as its own point
+ggplot(SLC_alphas_tbl, aes(x = treatment, y = a, group = treatment)) +
+  geom_point(aes(color = litter)) +
+ geom_line(aes(color=treatment))
+
+ggplot(SLC_alphas_tbl, aes(x = reorder(SLC, -a), y = a)) +
+  geom_point(aes(col = treatment), size = 2) +
+  geom_errorbar(
+    aes(
+      ymin = a - std.error, ymax = a + std.error,
+      col = treatment
+    ),
+    width = 0.08
+  ) +
+  scale_color_discrete(name = "Decay\nEnvironment") +
+  theme(
+    axis.text.x = element_text(angle = 90)
+    #  , legend.title = element_text("Decay Environment")
+  ) +
+  ggtitle("Decay Coefficient (k) for each Site/Litter Combination (SLC)") +
+  xlab("SLC") +
+  ylab("k")
+
+# bar version of interaction graph, which I like less
+ggplot(SLC_alphas_sum, aes(x = treatment, y = mean_a, group = litter, fill = litter)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.6), width = 0.5) +
+  geom_errorbar(aes(ymin = mean_a - std.error, ymax = mean_a + std.error),
+                width = 0.2,
+                position = position_dodge(width = 0.6)
+  )
