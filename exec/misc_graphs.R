@@ -1,3 +1,5 @@
+# Figures not used in final presentation and/or analysis. Some may be incomplete.
+
 source("exec/read_data.R")
 
 # visualizing the weird bump at the third collection date
@@ -91,3 +93,20 @@ ggplot(SLC_alphas_sum, aes(x = treatment, y = mean_a, group = litter, fill = lit
                 width = 0.2,
                 position = position_dodge(width = 0.6)
   )
+
+# treatment by moisture barplot  (with error bars)
+ggplot(soils_decomp_clean_treatment, aes(y = mean_moisture)) +
+  geom_bar(stat = "identity", aes(x = treatment, fill = treatment), width = 0.4) +
+  geom_errorbar(aes(x = treatment, ymin = mean_moisture - std.error_mois, ymax = mean_moisture + std.error_mois), width = 0.15)
+
+# treatment by salinity barplot  (with error bars)
+ggplot(soils_decomp_clean_treatment, aes(y = mean_salinity)) +
+  geom_bar(stat = "identity", aes(x = treatment, fill = treatment), width = 0.4) +
+  geom_errorbar(aes(x = treatment, ymin = mean_salinity - std.error_sal, ymax = mean_salinity + std.error_sal), width = 0.15)
+
+# showing how the low moisture outlier skews the whole thing terribly
+soils_decomp_clean_site %>%
+  filter(mean_moisture > 0.6) %>%
+  ggplot(aes(x = mean_moisture, y = mean_salinity)) +
+  geom_point(aes(col = treatment)) +
+  geom_smooth(method = "lm")

@@ -1,3 +1,6 @@
+# General repository for scrap code, kept in case pieces were useful later
+
+
 # trying to do self-starting model... IT WORKS NOW!
 fit_morella <- nls(PercMassRemaining ~ SSasymp(days_to_collection, 0, 1, log_alpha), data = df %>% filter(treatment == "Morella"))
 
@@ -356,3 +359,31 @@ TLC_alphas_tbl
 
 df <- df %>%
   merge(TLC_alphas_tbl, by = "TLC")
+
+# Testing Noa model - trying to do here what Riley did with Cool model. Not sure if it actually shows us new info or not.
+t_to_eyeball_fit <- 1:365
+# perc_mass_to_eyeball_fit_noa <- get_mass_pct_remaining_at_t(
+#   a = coef(noa_model)[["a"]],
+#   t = t_to_eyeball_fit
+# )
+# plot(
+#   x = df[which(df$treatment == "Morella"), "years_to_collection"],
+#   y = df[which(df$treatment == "Morella"), "PercMassRemaining"]
+# )
+# lines(
+#   x = t_to_eyeball_fit,
+#   y = perc_mass_to_eyeball_fit_noa,
+#   t = "p",
+#   col = "blue"
+# )
+
+perc_mass_to_eyeball_fit_four <- four_years %>%
+  rename("years_to_collection" = "seq(1, 4, 0.02)") %>%
+  mutate(pmr = unlist(get_mass_pct_remaining_at_t(
+    alpha = coef(noa_model_tester)[["a"]],
+    t = four_years
+  )))
+
+ggplot(soils_decomp_clean_site, aes(y = mean_salinity)) +
+  geom_bar(stat = "identity", aes(x = site, fill = site)) +
+  geom_errorbar(aes(x = site, ymin = mean_salinity - std.error_sal, ymax = mean_salinity + std.error_sal), width = 0.2)

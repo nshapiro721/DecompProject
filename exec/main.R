@@ -1,3 +1,10 @@
+# Decomposition Data Analysis Conducted in 
+#   Summer 2023 by Gedan Lab REU Noa Shapiro-Tamir
+#   with assistance from Riley Leff
+
+# Contact Noa at nshapiro@oberlin.edu or 607-351-1123 with questions
+
+#loading libraries
 library(dplyr)
 library(ggplot2)
 library(tidyr)
@@ -6,10 +13,18 @@ library(purrr)
 library(modelr)
 library(stringr)
 
-source("exec/util.R")
-source("exec/read_data.R")
+source("exec/util.R") #a few formulas written by Riley to help obtain alpha values
+source("exec/read_data.R") #reading in and cleaning data
 
-# From Riley: example of using lapply() to avoid repetitive code.
+# A few naming notes:
+#   'alpha', 'a', and 'k' are all interchangeable names for decay coefficient
+#   'treatment' is shorthand for decay environment
+#   'SLC' is shorthand for site-litter combo, ie. a unique code for each litter type at each #      site, of which there are 27. 1 of each collected at each collection time.
+
+
+# From Riley: example of using lapply() to avoid repetitive code, which creates 
+#   an NLS model for each decay environment
+
 model_formula <- as.formula(PercMassRemaining ~ exp(-a * years_to_collection))
 treatments <- split(df, df$treatment)
 models <- lapply(
@@ -34,7 +49,12 @@ deviance(models$Pine)
 treatment_alphas <- df %>%
   nest(-treatment) %>%
   mutate(
-    fit = map(data, ~ nls(PercMassRemaining ~ 1 * exp(-a * years_to_collection), data = ., start = list(a = 0.1))),
+    fit = map(data,
+              ~ nls(PercMassRemaining ~ 1 * exp(-a * years_to_collection), 
+                    data = ., 
+                    start = list(a = 0.1)
+                    )
+              ),
     tidied = map(fit, tidy),
     Augmented = map(fit, augment),
   )
@@ -46,11 +66,16 @@ treatment_alphas_tbl <- treatment_alphas %>%
 
 treatment_alphas_tbl
 
-# Iterating models of alpha for all Site/Treatment combos
+# Iterating models of alpha for all SLC's
 SLC_alphas <- df %>%
   nest(-SLC) %>%
   mutate(
-    fit = map(data, ~ nls(PercMassRemaining ~ 1 * exp(-a * years_to_collection), data = ., start = list(a = 0.01))),
+    fit = map(data, 
+              ~ nls(PercMassRemaining ~ 1 * exp(-a * years_to_collection), 
+                    data = ., 
+                    start = list(a = 0.01)
+                    )
+              ),
     tidied = map(fit, tidy),
     Augmented = map(fit, augment),
   )
@@ -80,7 +105,7 @@ SLC_alphas_sum <- SLC_alphas_tbl %>%
     std.error = sd(a) / sqrt(length(a))
   )
 
-# graphs of alpha values
+# Graphs of alpha values: 
 
 # graph of treatment alphas using averaged SLC data
 SLC_alphas_tbl %>%
@@ -147,29 +172,8 @@ SLC_anova <- aov(data = SLC_alphas_tbl, a ~ treatment * litter)
 summary(SLC_anova)
 TukeyHSD(SLC_anova, "treatment")
 
-# plotting the curves themselves
 
-# From Riley: example of using lapply() to avoid repetitive code.
-model_formula <- as.formula(PercMassRemaining ~ exp(-a * years_to_collection))
-treatments <- split(df, df$treatment)
-models <- lapply(
-  X = treatments, 
-  FUN = function(treat_data) {
-    nls(
-      formula = model_formula,
-      data = treat_data,
-      start = list(a = 0.02)
-    )
-  }
-) # models is a list containing a model for each treatment, 
-# using the formula defined by model_formula
-
-lapply(
-  X = ,
-  FUN = function() {
-    add_predictions()
-  }
-)
+# Plotting the curves:
 df <- df %>% mutate(ID = row_number())
 
 morella_preds <- df %>%
@@ -218,98 +222,56 @@ four_years <- as.data.frame(seq(1, 4, 0.02)) %>%
   rename(four_years_continuous = seq)
 
 ten_years <- as.data.frame(seq(1, 10, 0.02))
-noa_model_tester <- nls(
-  PercMassRemaining ~ 1 * exp(-a * years_to_collection),
-  data = df %>% filter(treatment == "Morella"),
-  start = list(a = 0.02)
-)
-
-noa_model_tester
-
-t_to_eyeball_fit <- 1:1000
-
-perc_mass_to_eyeball_fit_four <- four_years %>%
-  rename("years_to_collection" = "seq(1, 4, 0.02)") %>%
-  mutate(pmr = unlist(get_mass_pct_remaining_at_t(
-    alpha = coef(noa_model_tester)[["a"]],
-    t = four_years
-  )))
 
 perc_mass_to_eyeball_fit_ten <- ten_years %>%
   rename("years_to_collection" = "seq(1, 10, 0.02)") %>%
-  mutate(pmr = unlist(get_mass_pct_remaining_at_t(
-    alpha = coef(noa_model_tester)[["a"]],
-    t = ten_years
-  )))
+  mutate(Morella = 
+           unlist(get_mass_pct_remaining_at_t(
+                     alpha = coef(models$Morella)[["a"]],
+                     t = ten_years)
+                  ),
+         Phragmites = 
+             unlist(get_mass_pct_remaining_at_t(
+               alpha = coef(models$Phragmites)[["a"]],
+               t = ten_years)
+                    ),
+         Pine = 
+           unlist(get_mass_pct_remaining_at_t(
+             alpha = coef(models$Pine)[["a"]],
+             t = ten_years)
+                  )
+         ) %>%
+  pivot_longer(cols = c("Morella", "Phragmites", "Pine"),
+               names_to = "treatment",
+               values_to = "pmr")
 
-perc_mass_to_eyeball_fit
-
-# OFFICIAL Graph showing that the curves are indeed curves over 10 years
+# Graph showing decay curves for each environment over 10 years
 ggplot(data = perc_mass_to_eyeball_fit_ten, aes(x = years_to_collection)) +
-  geom_smooth(aes(y = pmr),
-    color = "salmon"
-  ) +
-  geom_smooth(data = df %>% filter(treatment == "Morella"), aes(y = pred), se = FALSE, col = "salmon") +
+  geom_smooth(aes(y = pmr,
+                  group = treatment,
+                  col = treatment)) +
+  geom_smooth(
+    data = df, 
+    aes(y = pred, col = treatment), se = FALSE) +
   geom_point(
-    data = df %>%
-      filter(treatment == "Morella") %>%
-      add_predictions(model = models$Morella),
+    data = df,
     aes(x = years_to_collection, y = PercMassRemaining)
   ) +
-  ggtitle("Decay Curve of Litter Under Morella Over 10 Years") +
+  ggtitle("Decay Curves of each Decay Environment Over 10 Years") +
   ylab("Percent Mass Remaining") +
-  xlab("Years")
-
-# Bringing in soil data
-soils_decomp <- read.csv("data/Decomp_soils.csv")
-soils_decomp[21, 2] <- "Pi1"
-soils_decomp$treatment <- substr(soils_decomp$site, 1, 2)
-
-soils_decomp_clean_site <-
-  soils_decomp %>%
-  group_by(site) %>%
-  summarise(
-    mean_moisture = mean(percentage_moisture),
-    std.error_mois = sd(percentage_moisture) / sqrt(length(percentage_moisture)),
-    mean_EC = mean(EC_uS.cm),
-    std.error_EC = sd(EC_uS.cm) / sqrt(length(EC_uS.cm)),
-    mean_salinity = mean(Salinity_ppt),
-    std.error_sal = sd(Salinity_ppt) / sqrt(length(Salinity_ppt))
-  ) %>%
-  mutate(
-    site = as.factor(site),
-    treatment = substr(site, 1, 2)
-  )
+  xlab("Years") +
+  scale_color_discrete(labels = c("Morella", "Phragmites", "Pine"),
+                       name = "Decay\nEnvironment") +
+theme(legend.position = c(0.85,0.7))
 
 
-soils_decomp_clean_treatment <-
-  soils_decomp %>%
-  group_by(treatment) %>%
-  summarise(
-    mean_moisture = mean(percentage_moisture),
-    std.error_mois = sd(percentage_moisture) / sqrt(length(percentage_moisture)),
-    mean_EC = mean(EC_uS.cm),
-    std.error_EC = sd(EC_uS.cm) / sqrt(length(EC_uS.cm)),
-    mean_salinity = mean(Salinity_ppt),
-    std.error_sal = sd(Salinity_ppt) / sqrt(length(Salinity_ppt))
-  ) %>%
-  mutate(site = as.factor(treatment))
-
+# Merging in the soil data, averaged for each site
 df <- df %>%
   merge(soils_decomp_clean_site, by = "site")
 
-# making regressions of soils + decomp data
-ggplot(soils_decomp_clean_site, aes(y = mean_salinity)) +
-  geom_bar(stat = "identity", aes(x = site, fill = site)) +
-  geom_errorbar(aes(x = site, ymin = mean_salinity - std.error_sal, ymax = mean_salinity + std.error_sal), width = 0.2)
+# Looking at patterns of salinity and moisture for each treatment group
 
-
-# treatment by moisture barplot  (with error bars)
-ggplot(soils_decomp_clean_treatment, aes(y = mean_moisture)) +
-  geom_bar(stat = "identity", aes(x = treatment, fill = treatment), width = 0.4) +
-  geom_errorbar(aes(x = treatment, ymin = mean_moisture - std.error_mois, ymax = mean_moisture + std.error_mois), width = 0.15)
-
-# treatment by moisture scatterplot (with error bars) *preferred
+#  treatment by moisture scatterplot (with error bars)
 ggplot(soils_decomp_clean_treatment, aes(y = mean_moisture, col = treatment)) +
   geom_errorbar(aes(x = treatment, ymin = mean_moisture - std.error_mois, ymax = mean_moisture + std.error_mois), width = 0.15) +
   geom_point(aes(x = treatment), size = 2.3) +
@@ -319,12 +281,7 @@ ggplot(soils_decomp_clean_treatment, aes(y = mean_moisture, col = treatment)) +
   scale_x_discrete(labels = c("Morella", "Phragmites", "Pine")) +
   theme(legend.position = "none")
 
-# treatment by salinity barplot  (with error bars)
-ggplot(soils_decomp_clean_treatment, aes(y = mean_salinity)) +
-  geom_bar(stat = "identity", aes(x = treatment, fill = treatment), width = 0.4) +
-  geom_errorbar(aes(x = treatment, ymin = mean_salinity - std.error_sal, ymax = mean_salinity + std.error_sal), width = 0.15)
-
-# treatment by salinity scatterplot (with error bars)
+#  treatment by salinity scatterplot (with error bars)
 ggplot(soils_decomp_clean_treatment, aes(y = mean_salinity)) +
   geom_errorbar(aes(x = treatment, ymin = mean_salinity - std.error_sal, ymax = mean_salinity + std.error_sal, col = treatment), width = 0.15) +
   geom_point(aes(x = treatment, fill = treatment, col = treatment), size = 2.3) +
@@ -334,7 +291,7 @@ ggplot(soils_decomp_clean_treatment, aes(y = mean_salinity)) +
   scale_x_discrete(labels = c("Morella", "Phragmites", "Pine")) +
   theme(legend.position = "none")
 
-# new ones by site
+#  regressions to find statistical significance of the soil salinity and moisture impacts on  site decay rate
 
 df_site_regressions <- df %>%
   group_by(site) %>%
@@ -361,7 +318,7 @@ summary(multivariate_site)
 
 # Avg site decay rate by site soil salinity
 ggplot(data = df_site_regressions, aes(x = mean_salinity, y = mean_alpha)) +
-  geom_point(size = 2.3) +
+  geom_point(aes(col = treatment), size = 2.3) +
   # geom_smooth(method = "lm") +
   ggtitle("Site Soil Salinity as Predictor of Site Average Decay Rate") +
   xlab("Site Soil Salinity") +
@@ -411,10 +368,3 @@ ggplot(data = df_site_regressions, aes(x = mean_moisture, y = mean_alpha)) +
     name = "Decay\nEnvironment",
     labels = c("Morella", "Phragmites", "Pine")
   )
-
-# showing how the low moisture outlier skews the whole thing terribly
-soils_decomp_clean_site %>%
-  filter(mean_moisture > 0.6) %>%
-  ggplot(aes(x = mean_moisture, y = mean_salinity)) +
-  geom_point(aes(col = treatment)) +
-  geom_smooth(method = "lm")
