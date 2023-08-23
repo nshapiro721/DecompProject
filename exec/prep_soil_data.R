@@ -1,7 +1,4 @@
-
-# SOIL DATA
-soils_decomp <- read.csv("data/Decomp_soils.csv")
-soils_decomp[21, 2] <- "Pi1"
+soils_decomp <- read.csv("data/raw/decomp_soils_no_metadata.csv")
 soils_decomp$treatment <- substr(soils_decomp$site, 1, 2)
 
 soils_decomp_clean_site <-

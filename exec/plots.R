@@ -1,4 +1,3 @@
-
 # graph of treatment alphas using averaged SLC data
 SLC_alphas_tbl %>%
   group_by(treatment) %>%

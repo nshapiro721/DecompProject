@@ -1,11 +1,10 @@
-# loading libraries
-library(dplyr)
-library(ggplot2)
-library(tidyr)
-library(broom)
-library(purrr)
-library(modelr)
-library(stringr)
+# library(dplyr)
+# library(ggplot2)
+# library(tidyr)
+# library(broom)
+# library(purrr)
+# library(modelr)
+# library(stringr)
 
 source("exec/read_data.R")
 source("exec/models.R")
