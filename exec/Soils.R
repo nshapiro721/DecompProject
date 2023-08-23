@@ -75,3 +75,8 @@ ggplot(data = replicated, aes(x = salinity, y = QC.rdg.salinity)) +
     x = 4.5, y = 1,
     label = "R^2 = 0.9896"
   )
+
+
+# Merging in the soil data, averaged for each site
+df <- df %>%
+  merge(soils_decomp_clean_site, by = "site")

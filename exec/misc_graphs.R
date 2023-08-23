@@ -66,7 +66,7 @@ ggplot(treatment_alphas_tbl, aes(x = treatment, y = a)) +
 # each site as its own point
 ggplot(SLC_alphas_tbl, aes(x = treatment, y = a, group = treatment)) +
   geom_point(aes(color = litter)) +
- geom_line(aes(color=treatment))
+  geom_line(aes(color = treatment))
 
 ggplot(SLC_alphas_tbl, aes(x = reorder(SLC, -a), y = a)) +
   geom_point(aes(col = treatment), size = 2) +
@@ -90,8 +90,8 @@ ggplot(SLC_alphas_tbl, aes(x = reorder(SLC, -a), y = a)) +
 ggplot(SLC_alphas_sum, aes(x = treatment, y = mean_a, group = litter, fill = litter)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.6), width = 0.5) +
   geom_errorbar(aes(ymin = mean_a - std.error, ymax = mean_a + std.error),
-                width = 0.2,
-                position = position_dodge(width = 0.6)
+    width = 0.2,
+    position = position_dodge(width = 0.6)
   )
 
 # treatment by moisture barplot  (with error bars)
