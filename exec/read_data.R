@@ -1,6 +1,6 @@
 #Data imports
 
-df <- read.csv("data/decomp_data.csv")
+df <- read.csv("data/decomp_data24.csv")
 sitedf <- read.csv("data/site_contents.csv")[, c(1, 4)]
 initials <- read.csv("data/initials.csv")
 df <- merge(df, sitedf, by = "tag")
