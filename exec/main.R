@@ -87,7 +87,7 @@ SLC_alphas_tbl <-
   spread(term, estimate)
 
 
-SLC_alphas_tbl
+SLC_alphas_tbl 
 
 df <- df %>%
   merge(SLC_alphas_tbl, by = "SLC")
@@ -130,7 +130,7 @@ SLC_alphas_tbl %>%
   xlab("Decay Environment") +
   ylab("k") +
   theme(legend.position = "none") +
-  ylim(c(0.19, 0.29)) +
+ # ylim(c(0.19, 0.29)) +
   scale_x_discrete(labels = c("Morella", "Phragmites", "Pine"))
 
 # Graph of litter alphas using averaged SLC data
@@ -212,7 +212,7 @@ ggplot(
   ggtitle("Modeled Decay Rate Curves for each Decay Environment") +
   labs(subtitle = "    with 95% confidence interval") +
   xlab("Years to Collection") +
-  xlim(c(0, 1)) +
+  xlim(c(0, 2)) +
   ylab("Percent Mass Remaining") +
   scale_color_discrete(name = "Decay\nEnvironment") +
   scale_fill_discrete(name = "Decay\nEnvironment")
