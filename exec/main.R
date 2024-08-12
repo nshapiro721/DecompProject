@@ -264,7 +264,46 @@ ggplot(data = perc_mass_to_eyeball_fit_ten, aes(x = years_to_collection)) +
                        name = "Decay\nEnvironment") +
 theme(legend.position = c(0.85,0.7))
 
+#coupla new graphs:
+## 1) treatment alphas from the treatment model
 
+treatment_alphas_tbl %>%
+  ggplot(aes(x = treatment, y = a, col = treatment)) +
+  geom_point(size = 2.5) +
+  geom_errorbar(
+    aes
+    (
+      ymin = a - std.error,
+      ymax = a + std.error
+    ),
+    width = 0.1
+  ) +
+  ggtitle("Decay Coefficient (k) for each Decay Environment - FROM TREATMENT MODEL",
+    subtitle = "(with standard error)"
+  ) +
+  xlab("Decay Environment") +
+  ylab("k") +
+  theme(legend.position = "none") +
+  scale_x_discrete(labels = c("Morella", "Phragmites", "Pine"))
+
+  ## 2) SLC alphas by home and away
+  SLC_alphas_sum$litter_short <- substr(SLC_alphas_sum$litter, 1, 2)
+
+SLC_alphas_sum <- SLC_alphas_sum %>%
+mutate(H_A = if_else (treatment == litter_short, "Home", "Away"))
+
+  ggplot(SLC_alphas_sum, aes(x = treatment, y = mean_a, group = litter, color = H_A)) +
+  geom_point(position = position_dodge(width = 0.2), size = 1.5) +
+  geom_errorbar(aes(ymin = mean_a - std.error, ymax = mean_a + std.error), width = 0.35, position = position_dodge(width = 0.2), linetype = 5) +
+  #geom_line(position = position_dodge(width = 0.2), linetype = 1) +
+  ggtitle("Impact of Decay Environment/Litter Interaction\non Decay Rate (k) ") +
+  xlab("Decay Environment") +
+  ylab("k") +
+  scale_color_discrete(name = "H_A") +
+  theme(
+    panel.grid.major = element_blank())
+
+  
 # Merging in the soil data, averaged for each site
 df <- df %>%
   merge(soils_decomp_clean_site, by = "site")

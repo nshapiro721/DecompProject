@@ -10,7 +10,6 @@ select(SLC, tag, PercMassRemaining, std.error, a) %>%
 arrange(-PercMassRemaining)
 
 
-
 # trying to do self-starting model... IT WORKS NOW!
 fit_morella <- nls(PercMassRemaining ~ SSasymp(days_to_collection, 0, 1, log_alpha), data = df %>% filter(treatment == "Morella"))
 
