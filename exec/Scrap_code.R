@@ -1,6 +1,16 @@
 # General repository for scrap code, kept in case pieces were useful later
 
 
+# looking at stuff in the data from 2024
+
+##looking at outliers in this year's data
+df %>% 
+filter(days_to_collection == 707) %>%
+select(SLC, tag, PercMassRemaining, std.error, a) %>%
+arrange(-PercMassRemaining)
+
+
+
 # trying to do self-starting model... IT WORKS NOW!
 fit_morella <- nls(PercMassRemaining ~ SSasymp(days_to_collection, 0, 1, log_alpha), data = df %>% filter(treatment == "Morella"))
 
