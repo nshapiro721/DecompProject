@@ -9,6 +9,30 @@ filter(days_to_collection == 707) %>%
 select(SLC, tag, PercMassRemaining, std.error, a) %>%
 arrange(-PercMassRemaining)
 
+## new model: litter-only model that uses the same 
+## parameters as treatment-only model (starting value 
+## 0.1, not averaging across SLC)
+
+litter_alphas <- df %>%
+  nest(-class) %>%
+  mutate(
+    fit = map(data,
+              ~ nls(PercMassRemaining ~ 1 * exp(-a * years_to_collection), 
+                    data = ., 
+                    start = list(a = 0.1)
+                    )
+              ),
+    tidied = map(fit, tidy),
+    Augmented = map(fit, augment),
+  )
+
+litter_alphas_tbl <- litter_alphas %>%
+  unnest(tidied) %>%
+  select(class, term, estimate, std.error) %>%
+  spread(term, estimate)
+
+litter_alphas_tbl
+
 
 # trying to do self-starting model... IT WORKS NOW!
 fit_morella <- nls(PercMassRemaining ~ SSasymp(days_to_collection, 0, 1, log_alpha), data = df %>% filter(treatment == "Morella"))
