@@ -1,0 +1,28 @@
+date,site,replicate,boat_weight,wet_weight,soil_wet_weight,dry_weight,soil_dry_weight,percentage_moisture,EC_uS/cm,Salinity_ppt,carbon,nitrogen,notes,Metadata:,
+7/13,Mo1,A,2.3,82.6,80.3,19.5,17.2,0.7858032379,1009,0.5,,,,site,Decomposition bag collection site. All samples collected within 2m of site flag
+7/13,Mo1,B,2.3,85.3,83.0,18.5,16.2,0.8048192771,1834,0.92,,,,Column,Description
+7/13,Mo1,C,2.1,59.6,57.5,15.1,13.0,0.7739130435,670,0.34,,,,date,Date of sample collection. 3 soil cores collected per site to a depth of approximately 2-5cm.
+7/13,Mo2,A,2.2,60.1,57.9,16.1,13.9,0.7599309154,647,0.32,,,,boat_weight,Weight of the aluminum weight boat used to hold the sample
+7/13,Mo2,B,2.1,71.5,69.4,17.3,15.2,0.7809798271,2050,1.02,,,,wet_weight,"Weight of the samples upon collection in grams, including the weight boat's weight."
+7/13,Mo2,C,2.2,52.8,50.6,13.9,11.7,0.7687747036,1967,0.98,,,,replicate,"Replicate collected. 3 replicates collected per site labelled A, B or C."
+7/13,Mo3,A,2.2,57.2,55.0,16.6,14.4,0.7381818182,1525,0.76,,,,soil_wet_weight,(wet_weight) - (boat_weight)
+7/13,Mo3,B,2.1,57.1,55.0,14.3,12.2,0.7781818182,3010,1.5,,,,dry_weight,Weight of the sample in grams after _ days of drying at 60C. Includes weight boat's weight
+7/13,Mo3,C,2.3,57.5,55.2,14.7,12.4,0.7753623188,1520,0.76,,,,soil_dry_weight,(dry_weight) - (boat_weight)
+7/13,Ph1,A,2.1,78.9,76.8,20.8,18.7,0.7565104167,2630,1.31,,,,percentage_moisture,Percentage of wet weight that was water. 
+7/13,Ph1,B,1.9,83.9,82.0,25.4,23.5,0.7134146341,2080,1.04,,,,carbon,Percentage of carbon found in the sample .
+7/13,Ph1,C,2.0,75.2,73.2,23.4,21.4,0.7076502732,2050,1.02,,,,EC_uS/cm,Electrical conductivity of the samples collected via 5:1 dilution method. Measured in microsiemens per centimeter (uS/cm).
+7/13,Ph2,A,2.3,68.9,66.6,16.3,14.0,0.7897897898,925,0.46,,,,,
+7/13,Ph2,B,2.2,105.2,103.0,23.9,21.7,0.7893203883,1183,0.59,,,,notes,Notes on sample collection or analysis .
+7/13,Ph2,C,2.3,89.9,87.6,19.4,17.1,0.8047945205,1095,0.55,,,,nitrogen,Percentage of nitrogen found in the sample. 
+7/13,Ph3,A,2.3,89.4,87.1,33,30.7,0.6475315729,919,0.46,,,,,
+7/13,Ph3,B,2.1,78.0,75.9,27.6,25.5,0.6640316206,1343,0.67,,,,,
+7/13,Ph3,C,2.1,93.4,91.3,33.7,31.6,0.6538882804,1119,0.56,,,,,
+7/13,Pi1,A,2.3,97.2,94.9,52.8,50.5,0.4678609062,353,0.18,,,,,
+7/13,Pi1,B,2.3,72.1,69.8,39.5,37.2,0.4670487106,355,0.18,,,,,
+7/13,PI1,C,2.3,31.7,29.4,13.3,11.0,0.6258503401,738,0.37,,,,,
+7/13,Pi2,A,1.9,66.4,64.5,17.1,15.2,0.7643410853,565,0.28,,,,,
+7/13,Pi2,B,2.1,70.9,68.8,16,13.9,0.7979651163,527,0.26,,,,,
+7/13,Pi2,C,2.2,65.2,63.0,16.1,13.9,0.7793650794,464,0.23,,,,,
+7/13,Pi3,A,2.1,68.8,66.7,17.3,15.2,0.772113943,581,0.29,,,,,
+7/13,Pi3,B,2.3,62.9,60.6,18.5,16.2,0.7326732673,550,0.28,,,,,
+7/13,Pi3,C,2.3,71.5,69.2,19.1,16.8,0.7572254335,564,0.28,,,,,
